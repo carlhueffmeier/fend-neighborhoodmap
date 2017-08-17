@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <title>Frankfurt Subway</title>
+    <link href="https://fonts.googleapis.com/css?family=Lato:300" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+  </head>
+  <body>
+
+    <div class="container-main">
+
+      <div class="title-bar">
+        <h1>Frankfurt Subway</h1>
+      </div>
+
+      <div class="content">
+
+        <div class="search">
+          <div class="searchbox">
+            <button class="searchbox-btn searchbox-btn-back"><span class="glyphicon glyphicon-chevron-left"></span></button>
+            <input class="input-lg searchbox-input" data-bind="textInput: searchTerm" />
+            <button class="searchbox-btn searchbox-btn-cancel"><span class="glyphicon glyphicon-remove"></span></button>
+          </div>
+
+          <div class="station-list">
+            <ul class="station-list-ul" data-bind="foreach: searchResults">
+              <li data-bind="text: name, css: { 'station-list-element-active': activeItem() == $data }, click: setActive"></li>
+            </ul>
+          </div>
+        </div>
+
+        <div id="map"></div>
+
+      </div> <!-- content -->
+
+    </div> <!-- container-main -->
+
+    <!-- Template for info window -->
+    <script id="info-template" type="text/template">
+      <div class="info">
+        <div class="row">
+          <div class="col-xs-3">
+            <div class="info-thumbnail col-xs-6"></div>
+          </div>
+          <div class="col-xs-9">
+            <h4 class="info-title"></h4>
+            <p class="info-district"></p>
+          </div>
+        </div>
+        <!-- Tabs -->
+        <ul class="info-nav nav nav-pills flex-column" role="tablist">
+          <li class="nav-item active">
+            <a class="nav-link" data-toggle="tab" href="#general" role="tab">General</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#timetable" role="tab">Timetable</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#route" role="tab">Route</a>
+          </li>
+        </ul>
+
+        <div class="tab-content info-content">
+
+          <!-- [Tab: General] shows pictures, reviews and misc information -->
+          <div class="tab-pane fade in active" id="general" role="tabpanel">
+            <div class="container-fluid">
+              <div class="row">
+
+                <div class="col-xs-12">
+                  <p>Rating: <span class="info-rating"></span></p>
+                  <ps class="info-review"></p>
+                </div>
+              </div> <!-- row -->
+            </div> <!-- container -->
+          </div>
+
+          <!-- [Tab: Timetable] shows a list of outgoing connections -->
+          <div class="tab-pane fade" id="timetable" role="tabpanel">
+            <table class="info-timetable"></table>
+          </div>
+
+          <!-- [Tab: Route] allows the user to view the route FROM or TO this station -->
+          <div class="tab-pane fade" id="route" role="tabpanel">
+            <div class="container-fluid">
+              <form class="form-horizontal route-form" role="form">
+                <div class="form-group row">
+                  <label for="route-input-origin" class="col-xs-2 control-label">From</label>
+                  <div class="col-xs-9">
+                    <input class="route-input-station form-control" type="text" id="route-input-origin" disabled>
+                  </div>
+                  <div class="col-xs-1 route-switch-btn-col">
+                    <button type="button" class="btn-default route-switch-btn"><span class="glyphicon glyphicon-random"></span></button>
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label for="route-input-destination" class="col-xs-2 control-label">To</label>
+                  <div class="col-xs-9">
+                    <input class="route-input-station form-control" type="text" id="route-input-destination">
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label for="time" class="col-xs-2 control-label">Time</label>
+                  <div class="col-xs-4">
+                    <!-- <input class="form-control" type="time" value="12:00" id="route-input-time"> -->
+                    <div class="input-group bootstrap-timepicker timepicker"><input id="timepicker" class="form-control" data-provide="timepicker" data-template="modal" data-minute-step="5" data-modal-backdrop="true" type="text"/></div>
+                  </div>
+                  <div class="col-xs-6">
+                    <label class="radio-inline"><input type="radio" value="departure" name="route-time-mode" checked>Departure</label>
+                    <label class="radio-inline"><input type="radio" value="arrival" name="route-time-mode">Arrival</label>
+                  </div>
+                </div>
+                <div class="form-group row text-center">
+                  <div class="col-xs-9 col-xs-offset-2">
+                    <button type="button" class="btn btn-primary btn-lg btn-block" id="route-go-btn"><span class="glyphicon glyphicon-send"></span> Go</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+          </div> <!-- tab-pane -->
+        </div> <!-- tab-content -->
+      </div> <!-- info -->
+    </script>
+
+    <!-- Google Services -->
+    <script src="https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyAkfjzdpVxQHLRZs_PLNiDrU4unNQ_8-A4"></script>
+
+    <!-- Application script -->
+    <script src="js/main.js"></script>
+  </body>
+</html>
