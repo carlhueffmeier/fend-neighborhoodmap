@@ -17,10 +17,13 @@ var jshint       = require('gulp-jshint'); // TODO
 // .pipe(jshint())
 //       .pipe(jshint.reporter('default'))
 
+
 gulp.task('css', function() {
+  // TODO: Try parcelify
   var files = [
     './node_modules/bootstrap/dist/css/bootstrap*.min.css',
-    './node_modules/javascript-autocomplete/auto-complete.css',
+    './node_modules/bootstrap-timepicker/css/bootstrap-timepicker.min.css',
+    './node_modules/jquery-ui-dist/jquery-ui.min.css',
     './app/css/*'
   ];
   return gulp.src(files)
@@ -41,7 +44,7 @@ gulp.task('html', function() {
 gulp.task('javascript', function() {
   // https://fettblog.eu/gulp-browserify-multiple-bundles/
   var files = [
-    './app/js/main.js'
+    './app/js/index.js'
   ];
   var tasks = files.map(function(entry) {
     var b = browserify({
@@ -92,7 +95,7 @@ gulp.task('watch', ['browserSync'], function() {
 gulp.task('clean', del.bind(null, ['maps', 'dist']));
 
 gulp.task('default', function(callback) {
-  runSequence(['browserSync', 'css', 'html', 'javascript', 'assets', 'fonts'],
+  runSequence(['css', 'html', 'javascript', 'assets', 'fonts'],
     callback
   )
 });

@@ -127,7 +127,7 @@ module.exports =
     "elementType": "geometry",
     "stylers": [
       {
-        "color": "#669099"
+        "color": "#202A25"
       }
     ]
   },

@@ -12,7 +12,7 @@
     <div class="container-main">
 
       <div class="title-bar">
-        <h1>Frankfurt Subway</h1>
+        <h1 class="title">Frankfurt Subway</h1>
       </div>
 
       <div class="content">
@@ -39,23 +39,23 @@
 
     <!-- Template for info window -->
     <script id="info-template" type="text/template">
+
       <div class="info">
-        <div class="row">
-          <div class="col-xs-3">
-            <div class="info-thumbnail col-xs-6"></div>
-          </div>
-          <div class="col-xs-9">
-            <h4 class="info-title"></h4>
+        <div class="info-header">
+          <div class="info-thumbnail"></div>
+          <div class="info-title">
+            <h4 class="info-name"></h4>
             <p class="info-district"></p>
           </div>
         </div>
+
         <!-- Tabs -->
         <ul class="info-nav nav nav-pills flex-column" role="tablist">
           <li class="nav-item active">
             <a class="nav-link" data-toggle="tab" href="#general" role="tab">General</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" data-toggle="tab" href="#timetable" role="tab">Timetable</a>
+            <a class="nav-link" data-toggle="tab" href="#departure-board" role="tab">Departures</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" data-toggle="tab" href="#route" role="tab">Route</a>
@@ -66,60 +66,82 @@
 
           <!-- [Tab: General] shows pictures, reviews and misc information -->
           <div class="tab-pane fade in active" id="general" role="tabpanel">
-            <div class="container-fluid">
+            <div class="container-fluid container-general">
               <div class="row">
-
                 <div class="col-xs-12">
-                  <p>Rating: <span class="info-rating"></span></p>
-                  <ps class="info-review"></p>
+                  <div id="general-spinner" class="spinner">
+                    <div class="bounce1"></div>
+                    <div class="bounce2"></div>
+                    <div class="bounce3"></div>
+                  </div>
+                  <div id="alert-general" class="status-alert alert alert-warning">
+                    <strong id="alert-general-heading"></strong>
+                    <span id="alert-general-message"></span>
+                  </div>
+                  <p class="info-rating"></p>
+                  <p class="info-review"></p>
                 </div>
               </div> <!-- row -->
             </div> <!-- container -->
           </div>
 
-          <!-- [Tab: Timetable] shows a list of outgoing connections -->
-          <div class="tab-pane fade" id="timetable" role="tabpanel">
-            <table class="info-timetable"></table>
+          <!-- [Tab: Departure Board] shows a list of outgoing connections -->
+          <div class="tab-pane fade" id="departure-board" role="tabpanel">
+            <div class="container-fluid container-departure">
+              <table class="info-departure-board"></table>
+            </div>
           </div>
 
           <!-- [Tab: Route] allows the user to view the route FROM or TO this station -->
           <div class="tab-pane fade" id="route" role="tabpanel">
-            <div class="container-fluid">
+            <div class="container-fluid container-flex">
               <form class="form-horizontal route-form" role="form">
-                <div class="form-group row">
-                  <label for="route-input-origin" class="col-xs-2 control-label">From</label>
-                  <div class="col-xs-9">
-                    <input class="route-input-station form-control" type="text" id="route-input-origin" disabled>
-                  </div>
-                  <div class="col-xs-1 route-switch-btn-col">
-                    <button type="button" class="btn-default route-switch-btn"><span class="glyphicon glyphicon-random"></span></button>
-                  </div>
-                </div>
-                <div class="form-group row">
-                  <label for="route-input-destination" class="col-xs-2 control-label">To</label>
-                  <div class="col-xs-9">
-                    <input class="route-input-station form-control" type="text" id="route-input-destination">
-                  </div>
-                </div>
-                <div class="form-group row">
-                  <label for="time" class="col-xs-2 control-label">Time</label>
-                  <div class="col-xs-4">
-                    <!-- <input class="form-control" type="time" value="12:00" id="route-input-time"> -->
-                    <div class="input-group bootstrap-timepicker timepicker"><input id="timepicker" class="form-control" data-provide="timepicker" data-template="modal" data-minute-step="5" data-modal-backdrop="true" type="text"/></div>
-                  </div>
-                  <div class="col-xs-6">
-                    <label class="radio-inline"><input type="radio" value="departure" name="route-time-mode" checked>Departure</label>
-                    <label class="radio-inline"><input type="radio" value="arrival" name="route-time-mode">Arrival</label>
+
+                <!-- Time selection -->
+                <div class="route-time-form form-group">
+                  <div class="col-xs-12">
+                    <div class="input-group input-group-sm bootstrap-timepicker timepicker">
+                      <span class="input-group-btn">
+                        <label class="time-mode-radio-btn btn active">
+                          <input type="radio" name="time-mode" value="departure" checked>Departure
+                        </label>
+                        <label class="time-mode-radio-btn btn">
+                          <input type="radio" name="time-mode" value="arrival">Arrival
+                        </label>
+                      </span>
+                      <input id="timepicker" type="text" class="form-control">
+                      <span class="input-group-addon"><i class="glyphicon glyphicon-time"></i></span>
+                    </div>
                   </div>
                 </div>
-                <div class="form-group row text-center">
-                  <div class="col-xs-9 col-xs-offset-2">
-                    <button type="button" class="btn btn-primary btn-lg btn-block" id="route-go-btn"><span class="glyphicon glyphicon-send"></span> Go</button>
+
+                <!-- Origin and destination inputs -->
+                <div>
+                  <div class="form-group form-group-centered">
+                    <label for="route-input-origin" class="col-xs-2 control-label">From</label>
+                    <div class="col-xs-9">
+                      <input class="route-input-station form-control" type="text" id="route-input-origin" autocorrect="off" spellcheck="false">
+                    </div>
+                    <div class="col-xs-1 route-switch-btn-col">
+                      <button type="button" class="btn-default route-switch-btn"><span class="glyphicon glyphicon-random"></span></button>
+                    </div>
+                  </div>
+                  <div class="form-group form-group-centered">
+                    <label for="route-input-destination" class="col-xs-2 control-label">To</label>
+                    <div class="col-xs-9">
+                      <input class="route-input-station form-control" type="text" id="route-input-destination" autocorrect="off" spellcheck="false">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- "Go" Button -->
+                <div class="form-group text-center">
+                  <div class="col-xs-12">
+                    <button type="button" class="btn btn-dark btn-lg btn-block" id="route-go-btn"><span class="glyphicon glyphicon-send"></span> Go</button>
                   </div>
                 </div>
               </form>
             </div>
-
           </div> <!-- tab-pane -->
         </div> <!-- tab-content -->
       </div> <!-- info -->
@@ -129,6 +151,6 @@
     <script src="https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyAkfjzdpVxQHLRZs_PLNiDrU4unNQ_8-A4"></script>
 
     <!-- Application script -->
-    <script src="js/main.js"></script>
+    <script src="js/index.js"></script>
   </body>
 </html>
