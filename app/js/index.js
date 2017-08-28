@@ -17,41 +17,106 @@ var overlay;
 
 // Info window
 function StationInfo() {
-  self = this;
+  var self = this;
   var trafficService = new TrafficService();
   var placesService = new google.maps.places.PlacesService(map);
+  // Placeholder image being used when no picture can be fetched
+  var thumbnailPlaceholderUrl = "assets/ic_train_thumbnail.svg";
 
+  // Holds the station for which info is being displayed
   self.station = null;
+
+  // Holds status information used to render progress bars etc.
   self.status = {
-    // Status codes
+    // Constant status codes
     FETCHING: 'FETCHING',
     ERROR: 'ERROR',
+    IDLE: 'IDLE',
     // Keep status codes consistent between my code and API
     ZERO_RESULTS: google.maps.places.PlacesServiceStatus.ZERO_RESULTS,
     OK: google.maps.places.PlacesServiceStatus.OK,
     NOT_FOUND: google.maps.places.PlacesServiceStatus.NOT_FOUND,
     UNKNOWN_ERROR: google.maps.places.PlacesServiceStatus.UNKNOWN_ERROR,
-    departureBoard: false,
-    placesService: false
+    // Actual service status
+    departureBoard: 'IDLE',
+    tripService: 'IDLE',
+    placesService: 'IDLE',
+    eventBindings: false,
+    timepicker: false,
+    autocomplete: false,
   };
-  self.placeholderUrl = "assets/ic_train_thumbnail.svg";
+
+  // Create new info window using html template
   self.infowindow = new google.maps.InfoWindow({
     content: $('#info-template').html()
   });
 
-  self.open = function() {
-    self.infowindow.open(map, self.station.marker);
+  //
+  // Public methods
+  //
+
+  self.setStation = function(station) {
+    self.station = station;
+    clearDataCache();
     return self;
   }
 
-  self.setInfoStyles = function() {
+  self.fetchInfo = function() {
+    getPlacesInfo()
+    getDepartureBoard()
+    render();
+    return self;
+  }
+
+  // Publicize some infowindow functions for convenience
+
+  self.open = function() {
+    $('.content').addClass('info-active');
+    self.infowindow.open(map, self.station.marker);
+    resize();
+    return self;
+  }
+
+  self.close = function() {
+    $('.content').removeClass('info-active');
+    attachToInfowindow();
+    self.infowindow.close();
+    return self;
+  }
+
+  self.onclose = function(callback) {
+    google.maps.event.addListener(self.infowindow, 'closeclick', callback.bind(self));
+    return self;
+  }
+
+
+  //
+  // Private Methods
+  //
+
+  // Info window preparation and setup of bindings
+  //
+
+  // Call prepareInfowindow every time the info window is newly inserted into the DOM
+  google.maps.event.addListener(self.infowindow, 'domready', prepareInfowindow);
+
+  function prepareInfowindow() {
+    setInfoStyles();
+    attachListeners();
+    resetElements();
+    enableTimepicker();
+    enableAutocomplete();
+  }
+
+  // Changes the internal google info window representation to make it look sleeker
+  function setInfoStyles() {
     // Adapted from http://en.marnoto.com/2014/09/5-formas-de-personalizar-infowindow.html
     // WARNING: Relying on inner working of Maps API. May stop working with newer versions.
 
-    // Reference to the DIV which receives the contents of the infowindow using jQuery
+    // Reference to the DIV which receives the contents of the info window
     var iwOuter = $('.gm-style-iw');
     $(iwOuter).parent().addClass('iw-container');
-    // The DIV we want to change is above the .gm-style-iw DIV.
+    // The DIV we want to change is above the .gm-style-iw DIV
     var iwBackground = iwOuter.prev();
     // Remove the background shadow DIV
     iwBackground.children(':nth-child(2)').css({'display' : 'none'});
@@ -66,7 +131,6 @@ function StationInfo() {
     var iwCloseBtn = iwOuter.next();
     iwCloseBtn.addClass('iw-close-btn');
     iwCloseBtn.html('<span class="iw-close-glyphicon glyphicon glyphicon-remove"></span>');
-
     // The API automatically applies 0.7 opacity to the button after the mouseout event.
     // This function reverses this event to the desired value.
     iwCloseBtn.mouseout(function(){
@@ -74,88 +138,159 @@ function StationInfo() {
     });
   }
 
-  self.addInfoListeners = function() {
-    $('#timepicker').timepicker().on('changeTime.timepicker', function(e) {
-      console.log('The time is ' + e.time.value);
-      console.log('The hour is ' + e.time.hours);
-      console.log('The minute is ' + e.time.minutes);
-      console.log('The meridian is ' + e.time.meridian);
-    });
-    $('input[type=radio][name=time-mode]').change(function () {
-      $('.time-mode-radio-btn').each(function() {
-        $(this).toggleClass('active', $(this).children('input').prop('checked'));
+  // Setup Event Handlers for info window
+  function attachListeners() {
+    if (!self.status.eventBindings) {
+      // Start trip search on click
+      $('#route-go-btn').click(getRoute);
+      // Make the time-mode buttons change status according to radio button status
+      $('input[type=radio][name=time-mode]').change(function () {
+        $('.time-mode-radio-btn').each(function() {
+          $(this).toggleClass('active', $(this).children('input').prop('checked'));
+        });
       });
-    });
-    console.log('domready!');
+      // Switch origin / destination on click
+      $('.route-switch-btn').click(switchStationInputs);
+      // Button to return from the trip results in route planner
+      $('.route-btn-return').click(clearTripResults);
+      self.status.eventBindings = self.status.OK;
+      // Handle window resize
+      $(window).resize(resize);
+    }
   }
 
-  self.prepareInfowindow = function() {
-    // Adapt styles when infowindow gets inserted into the DOM
-    self.setInfoStyles();
-    // Add listeners to info window (TODO Do I have to set them every time or are bindings persistent?)
-    self.addInfoListeners();
+  function resize() {
+    var breakpoint = 768;
+    var iwContainer = $('.gm-style-iw').find('div:first > div:first');
+    if ($(window).width() < breakpoint) {
+      attachToContent();
+    } else if ($(window).width() >= breakpoint) {
+      attachToInfowindow();
+      self.infowindow.open(map, self.station.marker);
+    }
+  }
+
+  function attachToInfowindow() {
+    var iwContainer = $('.gm-style-iw').find('div:first > div:first');
+    if ($('.info').parent().is('.content')) {
+      $('.info').appendTo($(iwContainer));
+    }
+  }
+
+  function attachToContent() {
+    var iwContainer = $('.gm-style-iw').find('div:first > div:first');
+    if ($('.info').parent().is(iwContainer)) {
+      $('.info').appendTo($('.content'));
+    }
+  }
+
+  // Clear results and return to form
+  function clearTripResults() {
+    $('.route-container').removeClass('route-container-show-trips');
+    $('#trip-results').html('');
+    setTripServiceStatus(self.status.IDLE);
+  }
+
+  // Switch "origin" and "destination" input values
+  function switchStationInputs() {
+    var origin = $('#route-input-origin').val();
+    $('#route-input-origin').val($('#route-input-destination').val());
+    $('#route-input-destination').val(origin);
+  }
+
+  // Reset DOM elements to initial state
+  function resetElements() {
     // Show first tab
-    $('a[href="#general"]').tab('show');
+    $('a[href="#departure-board"]').tab('show');
     // Set "departure" time mode by default
     $('input[name="time-mode"][value="departure"]').prop('checked', true).trigger('change');
     // Reset route planner inputs
-    $('#route-input-origin').val(self.station.name);
-    $('#route-input-destination').val('');
-    // Enable timepicker widget
-    $('#timepicker').timepicker();
-    // Enable autocomplete on route planner inputs
+    $('#route-input-origin').val('');
+    $('#route-input-destination').val(self.station.name);
+    // Reset trip results and return to route form
+    clearTripResults();
+  }
+
+  // Returns hafasId for station name string
+  function getIdByName(stationName) {
+    // var matcher = new RegExp($.ui.autocomplete.escapeRegex(stationName), 'i');
+    var results = stations.filter(function(station) {
+      // return matcher.test(station.longName);
+      return stationName === station.name;
+    })
+    console.log(results);
+    if (results.length !== 1) {
+      // TODO What if there are two or three matching stations? -> Dialog
+      // Do error handling not here, but in verify data?
+    } else {
+      return results[0].hafasId;
+    }
+  }
+
+  // Enable autocomplete on route planner inputs
+  function enableAutocomplete() {
     var numOfSuggestions = 15;
-    var stationNames = stations.map(function(station) {
-                         return station.name;
-                       });
-    $('.route-input-station').autocomplete({
-      source: function(request, response) {
-        var matcher = new RegExp($.ui.autocomplete.escapeRegex(request.term), 'i');
-        response($.grep(stationNames, function(item) {
-          return matcher.test(item);
-        }).sort().slice(0, numOfSuggestions));
-      }
-    });
-  }
-  // Gets called every time the info window is newly inserted into the DOM
-  google.maps.event.addListener(self.infowindow, 'domready', self.prepareInfowindow);
 
-  self.close = function() {
-    self.infowindow.close();
-    return self;
+    if (!self.status.autocomplete) {
+      var stationNames = stations.map(function(station) {
+                           return station.name;
+                         });
+      $('.route-input-station').autocomplete({
+        source: function(request, response) {
+          var matcher = new RegExp($.ui.autocomplete.escapeRegex(request.term), 'i');
+          response($.grep(stationNames, function(item) {
+            return matcher.test(item);
+          }).sort().slice(0, numOfSuggestions));
+        }
+      });
+      self.status.autocomplete = self.status.OK;
+    }
   }
 
-  self.setStation = function(station) {
-    self.station = station;
-    return self.clear();
+  // Enable timepicker widget in 24h mode
+  function enableTimepicker() {
+    if (!self.status.timepicker) {
+      $('#timepicker').timepicker({
+        showMeridian: false
+      });
+      self.status.timepicker = self.status.OK;
+    }
   }
 
-  self.onclose = function(callback) {
-    google.maps.event.addListener(info, 'closeclick', callback);
+  //
+  // Methods for fetching data
+  //
+
+  function getRoute() {
+    setTripServiceStatus(self.status.FETCHING);
+    // Verify Data
+    var request = {};
+    request.originId = getIdByName($('#route-input-origin').val());
+    request.destId = getIdByName($('#route-input-destination').val());
+    request.time = $('#timepicker').val();
+    if ($('input[type=radio][name=time-mode]:checked').val() === 'arrival') {
+      request.searchForArrival = 1;
+    } else {
+      request.searchForArrival = 0;
+    }
+    trafficService.getRoute(request, renderRoute.bind(self)); // TODO success and fail handler?
   }
 
-  self.fetchInfo = function() {
-    return self.getPlacesInfo()
-               .getDepartureBoard()
-               .render();
-  }
-
-  self.getDepartureBoard = function() {
-    self.setDepartureBoardStatus(self.status.FETCHING);
-    trafficService.getDepartureBoard(self.station, function(result) {
-      result.Departure;
+  // Fetches departure data and stores it in property
+  function getDepartureBoard() {
+    setDepartureBoardStatus(self.status.FETCHING);
+    trafficService.getDepartureBoard(self.station.hafasId, function(result) {
       if (!result.Departure || result.Departure.length === 0) {
-        self.setDepartureBoardStatus(self.status.ERROR);
+        setDepartureBoardStatus(self.status.ERROR);
       } else {
         self.departure = result.Departure;
-        self.setDepartureBoardStatus(self.status.OK);
+        setDepartureBoardStatus(self.status.OK);
       }
-      self.renderDepartureBoard();
+      renderDepartureBoard();
     })
-    return self;
   }
 
-  self.getPlacesInfo = function(type) {
+  function getPlacesInfo(type) {
     var request = {
       location: self.station.location,
       radius: 300,
@@ -163,29 +298,28 @@ function StationInfo() {
       query: self.station.name
     };
     // Search for place
-    self.setPlacesStatus(self.status.FETCHING);
+    setPlacesStatus(self.status.FETCHING);
+    // Save last request TODO Try counter
     self.status.placesRequest = request;
-    placesService.textSearch(request, self.getPlacesDetails);
-    return self;
+    placesService.textSearch(request, getPlacesDetails);
   }
 
-  self.getPlacesDetails = function(results, status) {
+  function getPlacesDetails(results, status) {
     var secondInquiry = function() {
       // If we are on the first attempt, try again with a more general type attribute
       if (self.status.placesRequest.type === 'transit_station') {
-        console.log('Attempting second Places API request..');
-        self.getPlacesInfo('point_of_interest');
+        getPlacesInfo('point_of_interest');
       } else {
-        self.setPlacesStatus(status);
+        setPlacesStatus(status);
       }
     }
     // If place is found..
     if (status === self.status.OK) {
       // Choose a place with enough information
-      var place = self.choosePlace(results);
+      var place = choosePlace(results);
       console.log('Results: ', results, 'Choice: ', place);
       if (place) {
-        return placesService.getDetails(place, self.getPlacesResults);
+        return placesService.getDetails(place, getPlacesResults);
       } else {
         // If no suitable place was found make a second attempt
         status = self.status.ZERO_RESULTS;
@@ -195,16 +329,17 @@ function StationInfo() {
       // Try to find the place with different attributes
       secondInquiry();
     } else {
-      self.setPlacesStatus(status);
+      setPlacesStatus(status);
     }
-    self.renderPlacesInfo();
+    renderPlacesInfo();
   }
 
-  self.choosePlace = function(places) {
+  // Takes an array of places and returns matching item if any or null if none found
+  function choosePlace(places) {
     // TODO: There are some complex patterns Frankfurt(Main)Süd
     var nameMatches = function(place) {
       return place.name.indexOf(self.station.name.slice(0, 5)) >= 0 ||
-             self.station.name.indexOf(place.name.replace(/%w+%s?\(%w+\)%s?(%w+)/, '$1')) >= 0;
+             self.station.name.indexOf(place.name.replace(/\w+\s?\(\w+\)\s?(\w+)/, '$1')) >= 0;
     }
     // Reject data sets without rating, review and photo information
     var hasRelevantInformation = function(place) {
@@ -215,22 +350,22 @@ function StationInfo() {
         return places[i];
       }
     }
-    return false;
+    return null;
   }
 
-  self.getPlacesResults = function(place, status) {
+  function getPlacesResults(place, status) {
     if (status == google.maps.places.PlacesServiceStatus.OK) {
-      self.getThumbnail(place);
-      self.getReviews(place);
+      getThumbnail(place);
+      getReviews(place);
       self.rating = place.rating;
     } else {
       console.log('Error: Could not get place details (' + status + ')');
     }
-    self.setPlacesStatus(self.status.OK);
-    return self.renderPlacesInfo();
+    setPlacesStatus(self.status.OK);
+    renderPlacesInfo();
   }
 
-  self.getThumbnail = function(place) {
+  function getThumbnail(place) {
     if (place.photos) {
       self.thumbnailUrl = place.photos[0].getUrl({
         maxWidth: 200,
@@ -238,10 +373,9 @@ function StationInfo() {
       });
     }
     // TODO: Pre-load image
-    return self;
   }
 
-  self.getReviews = function(place) {
+  function getReviews(place) {
     self.reviews = [];
     if (place.reviews) {
       for (var i = 0; i < place.reviews.length; i++) {
@@ -253,146 +387,61 @@ function StationInfo() {
         });
       }
     }
-    return self;
   }
 
-  self.clear = function() {
-    self.reviews = null;
-    self.departure = null;
-    self.thumbnailUrl = null;
-    self.rating = null;
-    self.status.departureBoard = false;
-    self.status.placesService = false;
-    return self;
+  //
+  // Render Methods
+  //
+
+  function render() {
+    updateDomElement('.info-name', self.station.name);
+    updateDomElement('.info-district', self.station.district);
+    renderPlacesInfo();
+    renderDepartureBoard();
   }
 
-  self.setDepartureBoardStatus = function(status) {
-    self.status.departureBoard = status;
+  function renderPlacesInfo() {
+    renderThumbnail()
+    renderOverallRating()
+    renderReviews();
   }
 
-  self.setPlacesStatusMessage = function() {
-    var messages = [
-      {
-        status: 'default',
-        heading: 'Error!',
-        message: 'An error occured: ' + self.status.placesService
-      },
-      { status: self.status.ZERO_RESULTS,
-        heading: 'Not found!',
-        message: 'Google has no information on this location yet.'
-      },
-      { status: self.status.UNKNOWN_ERROR,
-        heading: 'Unknown Error!',
-        message: 'An unknown error occured. Please try again later.'
-      }
-    ];
-    var result = messages.find(function(msg) {
-      return msg.status === self.status.placesService;
-    }) || messages.default;
-    $('#alert-general-heading').html(result.heading);
-    $('#alert-general-message').html(result.message);
-  }
-
-  self.setPlacesStatus = function(status) {
-    self.status.placesService = status;
-    // Show spinner in general tab when fetching from Places API
-    var showAlert = showSpinner = false;
-    if (status === self.status.FETCHING) {
-      showSpinner = true;
-    } else if (status !== self.status.OK) {
-      showAlert = true;
-      self.setPlacesStatusMessage()
-    }
-    $('#general-spinner').toggleClass('visible', showSpinner);
-    $('#alert-general').toggleClass('visible', showAlert);
-  }
-
-  self.updateDomElement = function(selector, content) {
-    var element = $(selector);
-    if (element.html() !== content) {
-      element.html(content);
-    } else {
-      console.log('not updating ' + selector + ' with ' + content);
-    }
-  }
-
-  self.render = function() {
-    self.updateDomElement('.info-name', self.station.name);
-    self.updateDomElement('.info-district', self.station.district);
-    self.renderPlacesInfo();
-    self.renderDepartureBoard();
-    return self;
-  }
-
-  self.renderPlacesInfo = function() {
-    self.renderThumbnail()
-        .renderRating()
-        .renderReviews();
-  }
-
-  self.renderThumbnail = function() {
-    var url = self.thumbnailUrl || self.placeholderUrl;
+  function renderThumbnail() {
+    var url = self.thumbnailUrl || thumbnailPlaceholderUrl;
         html = '<img src="' + url + '" alt="photo of ' + self.station.name + '"/>';
-    self.updateDomElement('.info-thumbnail', html);
-    return self;
+    updateDomElement('.info-thumbnail', html);
   }
 
-  self.renderRating = function() {
+  function renderOverallRating() {
     var html = '';
     if (self.status.placesService === self.status.OK) {
       html = self.rating ? 'Rating: ' + self.rating
                          : 'Rating: ---';
     }
-    self.updateDomElement('.info-rating', html);
-    return self;
+    updateDomElement('.info-rating', html);
   }
 
-  self.renderReviews = function() {
+  function renderReviews() {
     var html = '';
     if (self.status.placesService === self.status.OK && self.reviews) {
       if (self.reviews.length === 0) {
         html = '<h3 class="info-review-heading">No reviews yet.</h3>';
       }
-      var sortedReviews = self.reviews.sort(self.compareReviews);
+      var sortedReviews = self.reviews.sort(compareReviews);
       for (var i = 0; i < sortedReviews.length; i++) {
         html += [
           '<p>',
           '<h3 class="info-review-heading">' + sortedReviews[i].author,
-          self.ratingToStars(sortedReviews[i].rating) + '</h3>',
+          ratingToStars(sortedReviews[i].rating) + '</h3>',
           sortedReviews[i].text,
           '</p>'
         ].join('\n');
       }
     }
-    self.updateDomElement('.info-review', html);
-    return self;
+    updateDomElement('.info-review', html);
   }
 
-  self.compareReviews = function(a, b) {
-    // TODO: Get user language
-    var userLang = 'en';
-    if (a.language === b.language) {
-      return 0;
-    } else if (a.language === userLang) {
-      return -1;
-    } else if (b.language === userLang) {
-      return 1;
-    } else {
-      return 0;
-    }
-  }
-
-  self.ratingToStars = function(rating) {
-    var html = '<div class="info-star-rating">';
-    for (var i = 0; i < 5; i++) {
-      html += (i < rating)
-                  ? '<span class="glyphicon glyphicon-star"></span>'
-                  : '<span class="glyphicon glyphicon-star-empty"></span>';
-    }
-    return html + '</div>';
-  }
-
-  self.renderDepartureBoard = function() {
+  function renderDepartureBoard() {
     var html;
     if (self.status.departureBoard === self.status.OK) {
       // Make table headings
@@ -419,17 +468,235 @@ function StationInfo() {
     } else {
       html = 'Could not fetch traffic information. (' + self.status.departureBoard + ')';
     }
-    self.updateDomElement('.info-departure-board', html);
-    return self;
+    updateDomElement('.info-departure-board', html);
   }
 
-  self.getFormattedTime = function() {
-    var now = new Date();
-    return ('0' + now.getHours()).slice(-2) + ':' +
-           ('0' + now.getMinutes()).slice(-2);
+  function renderRoute(result, status) {
+    // No results TODO
+    result.Trip.forEach(function(item, index) {
+      renderTrip(item, 'Trip' + index);
+    });
+    setTripServiceStatus(self.status.OK);
+    $('.route-container').addClass('route-container-show-trips');
+  }
+
+  // Renders a single trip and attaches it to the trip results
+  function renderTrip(trip, id) {
+    var tripTitle = constructTripTitle(trip);
+    var tripBody = constructTripBody(trip);
+
+    // Append new result to list using the html template
+    $('#trip-results').append($('#info-trip-template').html().replace(/#DATA_ID#/g, id));
+    // Fill in the content of the new panel
+    $('.trip-panel').last().find('.trip-body').html(tripBody);
+    $('.trip-panel').last().find('.trip-title').html(tripTitle)
+  }
+
+  function prettyPrintDuration(duration) {
+    // Pretty sure this can be done in one convoluted regex
+    var str = '';
+    var hours = duration.match(/(\d+)H/);
+    var minutes = duration.match(/(\d+)M/);
+    if (hours) {
+      str += hours[1] + 'h ';
+    }
+    if (minutes) {
+      str += minutes[1] + 'm';
+    }
+    return str;
+  }
+
+  function constructTripTitle(trip) {
+    var legs = trip.LegList.Leg;
+    var departureTime = removeTrailingSeconds(legs[0].Origin.time);
+    var arrivalTime = removeTrailingSeconds(legs[legs.length - 1].Destination.time);
+    var tripDuration = prettyPrintDuration(trip.duration);
+    var tripTitle = [
+      departureTime + ' – ' + arrivalTime,
+      '<span class="pull-right">' + tripDuration + '</span><br>',
+    ].join(' ');
+    // Add an overview of transfers to the title
+    legs.forEach(function(leg, index) {
+      if (index > 0) {
+        tripTitle += '<span class="glyphicon glyphicon-chevron-right trip-chevron"></span>'
+      }
+      tripTitle += createProductBadge(leg);
+    });
+    return tripTitle;
+  }
+
+  function createProductBadge(leg) {
+    var product = leg.name || leg.type;
+    var productClass = '';
+    if (product.search(/^\s*U/) === 0) {
+      productClass = 'trip-product-badge-ubahn';
+    } else if (product.search(/^\s*S/) === 0) {
+      productClass = 'trip-product-badge-sbahn';
+    } else if (product.search(/^\s*Tram/) === 0) {
+      productClass = 'trip-product-badge-tram';
+    } else if (product.search(/^\s*Bus/) === 0) {
+      productClass = 'trip-product-badge-bus';
+    } else if (product.search(/^\s*WALK/) === 0) {
+      productClass = 'trip-product-badge-walk';
+    }
+    var badge = [
+      '<div class="trip-product-badge ' + productClass + '">',
+      product,
+      '</div>'
+    ].join('\n');
+    return badge;
+  }
+
+  function constructTripBody(trip) {
+    var legs = trip.LegList.Leg;
+    var tripBody = '';
+    legs.forEach(function(leg, index) {
+      legDescription = leg.name || leg.type;
+      legDirection = leg.direction || '';
+      // Panel content
+      tripBody += [
+        '<table class="table-condensed">',
+        '  <tr>',
+        '    <th>' + legDescription + '</th>',
+        '    <th>' + legDirection + '</th>',
+        '  </tr>',
+        '  <tr>',
+        '    <td>' + removeTrailingSeconds(leg.Origin.time) + '</td>',
+        '    <td>' + removeLeadingCityName(leg.Origin.name) + '</td>',
+        '  </tr>',
+        '  <tr>',
+        '    <td>' + removeTrailingSeconds(leg.Destination.time) + '</td>',
+        '    <td>' + removeLeadingCityName(leg.Destination.name) + '</td>',
+        '  </tr>',
+        '</table><br>'
+      ].join('\n');
+    });
+    return tripBody;
+  }
+
+  //
+  // Status Helper
+  // Methods to set status property and apply style changes if necessary
+  //
+
+  function setDepartureBoardStatus(status) {
+    self.status.departureBoard = status;
+  }
+
+  // Styles "Go" button according to trip service status
+  function setTripServiceStatus(status) {
+    self.status.tripService = status;
+    if (status === self.status.FETCHING) {
+      // Pulsing button
+      $('#route-go-btn').addClass('route-go-btn-fetching');
+    } else if (status === self.status.OK) {
+      // Green button
+      $('#route-go-btn').removeClass('route-go-btn-fetching')
+                        .addClass('route-go-btn-success');
+    } else { // TODO Error handling
+      $('#route-go-btn').removeClass('route-go-btn-fetching route-go-btn-success');
+    }
+  }
+
+  // Shows spinner or alert window depending on new status
+  function setPlacesStatus(status) {
+    self.status.placesService = status;
+    // Show spinner in reviews tab when fetching from Places API
+    var showAlert = showSpinner = false;
+    if (status === self.status.FETCHING) {
+      showSpinner = true;
+    } else if (status !== self.status.OK) {
+      showAlert = true;
+      setPlacesStatusMessage();
+    }
+    $('#places-spinner').toggleClass('visible', showSpinner);
+    $('#alert-places').toggleClass('visible', showAlert);
+  }
+
+  // Sets alert window message for places error
+  function setPlacesStatusMessage() {
+    var messages = [
+      {
+        status: 'default',
+        heading: 'Error!',
+        message: 'An error occured: ' + self.status.placesService
+      },
+      {
+        status: self.status.ZERO_RESULTS,
+        heading: 'Not found!',
+        message: 'Google has no information on this location yet.'
+      },
+      {
+        status: self.status.UNKNOWN_ERROR,
+        heading: 'Unknown Error!',
+        message: 'An unknown error occured. Please try again later.'
+      }
+    ];
+    var result = messages.find(function(msg) {
+      return msg.status === self.status.placesService;
+    }) || messages.default;
+    $('#alert-places-heading').html(result.heading);
+    $('#alert-places-message').html(result.message);
+  }
+
+  //
+  // Helper Methods
+  //
+
+  // Applies changes to DOM only when necessary
+  function updateDomElement(selector, content) {
+    var element = $(selector);
+    if (element.html() !== content) {
+      element.html(content);
+    }
+  }
+
+  // Removes all cached station data
+  function clearDataCache() {
+    self.reviews = null;
+    self.departure = null;
+    self.thumbnailUrl = null;
+    self.rating = null;
+    self.status.departureBoard = false;
+    self.status.placesService = false;
+  }
+
+  // For sorting: makes reviews in the user language appear first
+  function compareReviews(a, b) {
+    // TODO: Get user language
+    var userLang = 'en';
+    if (a.language === userLang) {
+      return -1;
+    } else if (b.language === userLang) {
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+
+  // Renders a five-star rating as combination of stars like this ★★★☆☆
+  function ratingToStars(rating) {
+    var html = '<div class="info-star-rating">';
+    for (var i = 0; i < 5; i++) {
+      html += (i < rating)
+                  ? '<span class="glyphicon glyphicon-star"></span>'
+                  : '<span class="glyphicon glyphicon-star-empty"></span>';
+    }
+    return html + '</div>';
+  }
+
+  // Returns only hours and minutes, e.g. "08:55:00" -> "08:55"
+  function removeTrailingSeconds(time) {
+    return time.slice(0, 5);
+  }
+
+
+  function removeLeadingCityName(locationStr) {
+    return locationStr.replace(/^Frankfurt \(Main\)/, '');
   }
 }
 
+// Interfaces with local transit provider API
 function TrafficService() {
   var self = this;
   var baseURL = 'https://www.rmv.de/hapi/';
@@ -451,20 +718,20 @@ function TrafficService() {
       dataType: 'jsonp',
       jsonp: 'jsonpCallback'
     }).done(callback).fail(function(err) {
-      throw err;
+      console.log('Error on AJAX request: ', err.status);
     });
   }
 
-  self.getDepartureBoard = function(station, callback) {
+  self.getDepartureBoard = function(hafasId, callback) {
     var url = self.getUrl('departureBoard', {
-      'id': station.hafasId,
+      'id': hafasId,
       'maxJourneys': 10
     });
     self.ajax(url, callback);
   }
 
-  self.getRoute = function(inquiry, callback) {
-    var url = getUrl('trip', inquiry);
+  self.getRoute = function(request, callback) {
+    var url = self.getUrl('trip', request);
     self.ajax(url, callback);
   }
 }
@@ -476,21 +743,43 @@ function Station(data) {
   this.longName = data.longName;
   this.district = data.district;
   this.location = { lat: parseFloat(data.lat), lng: parseFloat(data.lng) };
-  var stationIcon = {
+  this.isHighlighted = false;
+  this.defaultIcon = {
     url: 'assets/ic_train.svg',
-    size: new google.maps.Size(24, 24),
     scaledSize: new google.maps.Size(24, 24),
     origin: new google.maps.Point(0, 0),
     anchor: new google.maps.Point(12, 20)
   };
-  this.marker = new google.maps.Marker({
-    icon: stationIcon,
+  this.highlightedIcon = {
+    url: 'assets/ic_train-highlight.svg',
+    scaledSize: new google.maps.Size(32, 32),
+    origin: new google.maps.Point(0, 0),
+    anchor: new google.maps.Point(16, 27)
+  };
+  this.marker = this.createMarker(this.defaultIcon);
+}
+
+Station.prototype.createMarker = function(icon) {
+  return new google.maps.Marker({
+    icon: icon,
     map: map,
     position: this.location,
-    title: this.name,
-    optimized: false
+    title: this.name
   });
-}
+};
+
+Station.prototype.toggleHighlight = function() {
+  this.isHighlighted = !this.isHighlighted;
+  console.log('Toggle ' + this.name + ' to ' + this.isHighlighted);
+  if (this.isHighlighted) {
+    // map.setCenter(this.marker.getPosition());
+    this.marker.setIcon(this.highlightedIcon);
+    this.marker.setZIndex(1000);
+  } else {
+    this.marker.setIcon(this.defaultIcon);
+    this.marker.setZIndex(100);
+  }
+};
 
 Station.prototype.showMarker = function() {
   if (this.marker.map === null) {
@@ -504,17 +793,6 @@ Station.prototype.hideMarker = function() {
   }
 };
 
-// Highlight the active marker
-Station.prototype.setActiveState = function(state) {
-  var markerImage = $('.gmnoprint[title="' + this.name + '"]');
-  if (state === true) {
-    map.panTo(this.marker.getPosition());
-    $(markerImage).addClass('marker-animate');
-  } else {
-    $(markerImage).removeClass('marker-animate');
-  }
-}
-
 /*******************************************
 /  neighborhoodMapViewModel
 /  °°°°°°°°°°°°°
@@ -526,7 +804,6 @@ var neighborhoodMapViewModel = function() {
   var self = this;
   self.info = new StationInfo();
   self.searchTerm = ko.observable("");
-  // TODO: Implement more complex searches (Tags, Subway Line, etc.)
   self.searchResults = ko.computed(function() {
     return ko.utils.arrayFilter(stations, function(station) {
       return station.longName.toLowerCase().indexOf(self.searchTerm().toLowerCase()) != -1;
@@ -539,8 +816,7 @@ var neighborhoodMapViewModel = function() {
   self.searchResults.subscribe(function(newValue) {
     // If the active Item is not in the search results, reset it
     if (self.activeItem() && $.inArray(self.activeItem(), newValue) === -1) {
-      removeActiveState(self.activeItem());
-      self.activeItem(null);
+      self.clearActive();
     }
     // Display markers if they are in the new results
     stations.forEach(function(station) {
@@ -552,57 +828,40 @@ var neighborhoodMapViewModel = function() {
     });
   });
 
-  function setupEventHandlers() {
-    // Hook up the markers to set active state on click
-    // TODO: Is it possible to reduce this to a single
-    // listener? Would that increase performance?
-    stations.forEach(function(station) {
-      station.marker.addListener('click', function() {
-        self.setActive.call(station);
-      });
-    });
-    // Remove active state from station when info window is closed
-    self.info.onclose(function() {
-      self.removeActiveState();
-    });
-    // Show the station list when user clicks the search input
-    $('.searchbox-input').focus(function() {
-      $('.station-list').addClass('station-list-active');
-    });
-    // Hook up the searchbox "back" and "cancel" buttons
-    $('.searchbox-btn-back').click(function() {
-      hideStationList();
-    });
-    $('.searchbox-btn-cancel').click(function() {
-      self.searchTerm('');
-      $('.searchbox-input').focus();
-    });
-  }
 
   // Track the currently selected station
   self.activeItem = ko.observable(null);
 
   // When the user clicks a station, set it as active and reveal information
   self.setActive = function() {
-    if (self.activeItem() !== null) {
-      self.removeActiveState(self.activeItem());
+    // 'this' refers to the newly selected station
+    if (self.activeItem() === this) {
+      self.info.open();
+    } else {
+      // Remove highlight from current item
+      if (self.activeItem() !== null) {
+        self.activeItem().toggleHighlight();
+      }
+      // Scroll the station list to the new active station
+      scrollToElement(this);
+      // Visually highlight the marker on the map
+      this.toggleHighlight();
+      // Set active item to the one the user clicked
+      activeItem(this);
+      // Populate and show info window on the marker
+      self.info.setStation(this)
+               .open()
+               .fetchInfo();
+      // Hide the station list for tablet and smartphone users
+      hideStationList();
     }
-    // Scroll the station list to the new active station
-    scrollToElement(this);
-    // Visually highlight the marker on the map
-    this.setActiveState(true);
-    // Set active item to the one the user clicked
-    activeItem(this);
-    // Populate and show info window on the marker
-    self.info.setStation(this)
-             .open()
-             .fetchInfo();
-    // Hide the station list for tablet and smartphone users
-    hideStationList();
   }
 
-  self.removeActiveState = function() {
-    self.activeItem().setActiveState(false);
+  // When the user clicks a station, set it as active and reveal information
+  self.clearActive = function() {
+    self.activeItem().toggleHighlight();
+    self.info.close(); // If it isn't closed already
+    self.activeItem(null);
   }
 
   // Scroll station list to active item
@@ -617,7 +876,35 @@ var neighborhoodMapViewModel = function() {
     }, 400);
   }
 
-  var hideStationList = function() {
+  function setupEventHandlers() {
+    // Hook up the markers to set active state on click
+    // TODO: Is it possible to reduce this to a single
+    // listener? Would that increase performance?
+    stations.forEach(function(station) {
+      station.marker.addListener('click', function() {
+        self.setActive.call(station);
+      });
+    });
+    // Remove active state from station when info window is closed
+    self.info.onclose(function() {
+      self.clearActive();
+    });
+    // Show the station list when user clicks the search input
+    $('.searchbox-input').focus(function() {
+      $('.station-list').addClass('station-list-active');
+    });
+    // Hook up the searchbox "back" and "cancel" buttons
+    $('.searchbox-btn-back').click(function() {
+      hideStationList();
+      self.info.close();
+    });
+    $('.searchbox-btn-cancel').click(function() {
+      self.searchTerm('');
+      $('.searchbox-input').focus();
+    });
+  }
+
+  function hideStationList() {
     $('.station-list').removeClass('station-list-active');
   }
 };
