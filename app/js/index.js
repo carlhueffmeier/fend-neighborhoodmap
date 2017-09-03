@@ -59,18 +59,18 @@ function StationInfo() {
     self.station = station;
     clearDataCache();
     return self;
-  }
+  };
 
   self.fetchInfo = function() {
     getPlacesInfo();
     getDepartureBoard();
     render();
     return self;
-  }
+  };
 
   self.isFullscreen = function() {
     return $('.info').parent().is('.content');
-  }
+  };
 
   // Publicize some infowindow functions for convenience
 
@@ -79,19 +79,19 @@ function StationInfo() {
     self.infowindow.open(map, self.station.marker);
     resize();
     return self;
-  }
+  };
 
   self.close = function() {
     $('.content').removeClass('info-active');
     attachToInfowindow();
     self.infowindow.close();
     return self;
-  }
+  };
 
   self.onclose = function(callback) {
     google.maps.event.addListener(self.infowindow, 'closeclick', callback.bind(self));
     return self;
-  }
+  };
 
 
   //
@@ -272,7 +272,7 @@ function StationInfo() {
     if (isValidTripRequest(request)) {
       var setErrorStatus = function() {
         setTripServiceStatus(self.status.ERROR, 'Error fetching trip results');
-      }
+      };
       trafficService.getRoute(request, renderRoute.bind(self), setErrorStatus);
     }
   }
@@ -287,7 +287,6 @@ function StationInfo() {
       setTripServiceStatus(self.status.ERROR, 'Error parsing the time');
     } else {
       // All checks passed!
-      console.log(request);
       return true;
     }
     return false;
@@ -295,9 +294,9 @@ function StationInfo() {
 
   // Fetches departure data and stores it in property
   function getDepartureBoard() {
-    const setErrorStatus = function() {
+    var setErrorStatus = function() {
       setDepartureBoardStatus(self.status.ERROR);
-    }
+    };
     setDepartureBoardStatus(self.status.FETCHING);
     trafficService.getDepartureBoard(self.station.hafasId, function(result) {
       if (!result.Departure || result.Departure.length === 0) {
@@ -333,12 +332,11 @@ function StationInfo() {
       } else {
         setPlacesStatus(status);
       }
-    }
+    };
     // If place is found..
     if (status === self.status.OK) {
       // Choose a place with enough information
       var place = choosePlace(results);
-      console.log('Results: ', results, 'Choice: ', place);
       if (place) {
         return placesService.getDetails(place, getPlacesResults);
       } else {
@@ -363,11 +361,11 @@ function StationInfo() {
       // "Frankfurt Süd" - "Frankfurt(Main)Süd"
       return place.name.indexOf(self.station.name.slice(0, 5)) >= 0 ||
              self.station.name.indexOf(place.name.replace(/\w+\s?\(\w+\)\s?(\w+)/, '$1')) >= 0;
-    }
+    };
     // Reject data sets without rating, review and photo information
     var hasRelevantInformation = function(place) {
       return place.rating || place.reviews || place.photos;
-    }
+    };
     for (var i = 0; i < places.length; i++) {
       if (hasRelevantInformation(places[i]) && nameMatches(places[i])) {
         return places[i];
@@ -424,8 +422,8 @@ function StationInfo() {
   }
 
   function renderPlacesInfo() {
-    renderThumbnail()
-    renderOverallRating()
+    renderThumbnail();
+    renderOverallRating();
     renderReviews();
   }
 
@@ -511,7 +509,7 @@ function StationInfo() {
     $('#trip-results').append($('#info-trip-template').html().replace(/#DATA_ID#/g, id));
     // Fill in the content of the new panel
     $('.trip-panel').last().find('.trip-body').html(tripBody);
-    $('.trip-panel').last().find('.trip-title').html(tripTitle)
+    $('.trip-panel').last().find('.trip-title').html(tripTitle);
   }
 
   function prettyPrintDuration(duration) {
@@ -540,7 +538,7 @@ function StationInfo() {
     // Add an overview of transfers to the title
     legs.forEach(function(leg, index) {
       if (index > 0) {
-        tripTitle += '<span class="glyphicon glyphicon-chevron-right trip-chevron"></span>'
+        tripTitle += '<span class="glyphicon glyphicon-chevron-right trip-chevron"></span>';
       }
       tripTitle += createProductBadge(leg);
     });
@@ -626,7 +624,8 @@ function StationInfo() {
   function setPlacesStatus(status) {
     self.status.placesService = status;
     // Show spinner in reviews tab when fetching from Places API
-    var showAlert = showSpinner = false;
+    var showAlert = false;
+    var showSpinner = false;
     if (status === self.status.FETCHING) {
       showSpinner = true;
     } else if (status !== self.status.OK) {
@@ -701,10 +700,10 @@ function StationInfo() {
   // Renders a five-star rating as combination of stars like this ★★★☆☆
   function ratingToStars(rating) {
     var html = '<div class="info-star-rating">';
+    var star = '<span class="glyphicon glyphicon-star"></span>';
+    var starEmpty = '<span class="glyphicon glyphicon-star-empty"></span>';
     for (var i = 0; i < 5; i++) {
-      html += (i < rating)
-                  ? '<span class="glyphicon glyphicon-star"></span>'
-                  : '<span class="glyphicon glyphicon-star-empty"></span>';
+      html += (i < rating) ? star : starEmpty;
     }
     return html + '</div>';
   }
@@ -712,7 +711,7 @@ function StationInfo() {
   function getTimepickerValue() {
     var pad = function(s) {
       return ('00' + s).slice(-2);
-    }
+    };
     var data = $('#timepicker').data('timepicker');
     return pad(data.hour) + ':' + pad(data.minute);
   }
@@ -740,7 +739,7 @@ function TrafficService() {
   self.getUrl = function(service, inquiryParameter) {
     var params = $.extend({}, baseParameter, inquiryParameter);
     return baseURL + service + '?' + $.param(params);
-  }
+  };
 
   self.ajax = function(url, callback, errorHandler) {
     $.ajax({
@@ -750,9 +749,11 @@ function TrafficService() {
       jsonp: 'jsonpCallback'
     }).done(callback).fail(function(err) {
       console.log('Error on AJAX request: ', err.status);
-      errorHandler && errorHandler();
+      if (errorHandler) {
+        errorHandler();
+      }
     });
-  }
+  };
 
   self.getDepartureBoard = function(hafasId, callback, errorHandler) {
     var url = self.getUrl('departureBoard', {
@@ -760,12 +761,12 @@ function TrafficService() {
       'maxJourneys': 10
     });
     self.ajax(url, callback, errorHandler);
-  }
+  };
 
   self.getRoute = function(request, callback, errorHandler) {
     var url = self.getUrl('trip', request);
     self.ajax(url, callback, errorHandler);
-  }
+  };
 }
 
 function Station(data) {
@@ -802,7 +803,6 @@ Station.prototype.createMarker = function(icon) {
 
 Station.prototype.toggleHighlight = function() {
   this.isHighlighted = !this.isHighlighted;
-  console.log('Toggle ' + this.name + ' to ' + this.isHighlighted);
   if (this.isHighlighted) {
     // map.setCenter(this.marker.getPosition());
     this.marker.setIcon(this.highlightedIcon);
@@ -887,14 +887,14 @@ var neighborhoodMapViewModel = function() {
       // Hide the station list for tablet and smartphone users
       hideStationList();
     }
-  }
+  };
 
   // When the user clicks a station, set it as active and reveal information
   self.clearActive = function() {
     self.activeItem().toggleHighlight();
     self.info.close(); // If it isn't closed already
     self.activeItem(null);
-  }
+  };
 
   // Scroll station list to active item
   self.scrollToElement = function(element) {
@@ -906,7 +906,7 @@ var neighborhoodMapViewModel = function() {
       // Scroll position needs to be offset by (y-position of <li>) - (y-position of <ul>)
       scrollTop: scrollTop + elementTop - listTop
     }, 400);
-  }
+  };
 
   function setupEventHandlers() {
     // Hook up the markers to set active state on click
