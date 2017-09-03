@@ -1,5 +1,5 @@
 {
-  "name": "neighborhood-map",
+  "name": "fend-neighborhoodmap",
   "version": "0.0.1",
   "description": "Udacity Neighborhood Map Project",
   "main": "index.js",
@@ -9,11 +9,10 @@
   "author": "Carl Hüffmeier",
   "license": "ISC",
   "dependencies": {
-    "autocomplete.js": "^0.28.3",
     "bootstrap": "^3.3.7",
     "bootstrap-timepicker": "^0.5.2",
     "jquery": "^3.2.1",
-    "jquery-ui": "^1.12.1",
+    "jquery-ui-dist": "^1.12.1",
     "knockout": "^3.4.2"
   },
   "devDependencies": {

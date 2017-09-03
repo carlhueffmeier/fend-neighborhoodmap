@@ -12,10 +12,6 @@ var browserSync  = require('browser-sync').create();
 var es           = require('event-stream');
 var del          = require('del');
 var sourceMaps   = require('gulp-sourcemaps');
-var jshint       = require('gulp-jshint'); // TODO
-
-// .pipe(jshint())
-//       .pipe(jshint.reporter('default'))
 
 
 gulp.task('css', function() {

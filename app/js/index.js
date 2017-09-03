@@ -1,8 +1,8 @@
 window.$        = window.jQuery = require('jquery');
-var jQueryUI    = require('jquery-ui-dist/jquery-ui.js');
+var jQueryUI    = require('jquery-ui-dist/jquery-ui');
 var ko          = require('knockout');
-var stationData = require('./map-data.js');
-var mapStyles   = require('./map-styles.js');
+var stationData = require('./map-data');
+var mapStyles   = require('./map-styles');
 var bootstrap   = require('bootstrap');
 var timepicker  = require('bootstrap-timepicker');
 
