@@ -62,10 +62,14 @@ function StationInfo() {
   }
 
   self.fetchInfo = function() {
-    getPlacesInfo()
-    getDepartureBoard()
+    getPlacesInfo();
+    getDepartureBoard();
     render();
     return self;
+  }
+
+  self.isFullscreen = function() {
+    return $('.info').parent().is('.content');
   }
 
   // Publicize some infowindow functions for convenience
@@ -213,18 +217,11 @@ function StationInfo() {
 
   // Returns hafasId for station name string
   function getIdByName(stationName) {
-    // var matcher = new RegExp($.ui.autocomplete.escapeRegex(stationName), 'i');
-    var results = stations.filter(function(station) {
-      // return matcher.test(station.longName);
-      return stationName === station.name;
-    })
-    console.log(results);
-    if (results.length !== 1) {
-      // TODO What if there are two or three matching stations? -> Dialog
-      // Do error handling not here, but in verify data?
-    } else {
-      return results[0].hafasId;
-    }
+    // TODO: If multiple matches for /stationName/i are found, ask user to choose
+    var result = stations.find(function(station) {
+      return stationName.toLowerCase() == station.name.toLowerCase();
+    });
+    return result ? result.hafasId : null;
   }
 
   // Enable autocomplete on route planner inputs
@@ -263,21 +260,44 @@ function StationInfo() {
 
   function getRoute() {
     setTripServiceStatus(self.status.FETCHING);
-    // Verify Data
     var request = {};
     request.originId = getIdByName($('#route-input-origin').val());
     request.destId = getIdByName($('#route-input-destination').val());
-    request.time = $('#timepicker').val();
+    request.time = getTimepickerValue();
     if ($('input[type=radio][name=time-mode]:checked').val() === 'arrival') {
       request.searchForArrival = 1;
     } else {
       request.searchForArrival = 0;
     }
-    trafficService.getRoute(request, renderRoute.bind(self)); // TODO success and fail handler?
+    if (isValidTripRequest(request)) {
+      var setErrorStatus = function() {
+        setTripServiceStatus(self.status.ERROR, 'Error fetching trip results');
+      }
+      trafficService.getRoute(request, renderRoute.bind(self), setErrorStatus);
+    }
+  }
+
+  function isValidTripRequest(request) {
+    // TODO: Instant validation with colors would be neeter
+    if (!request.originId) {
+      setTripServiceStatus(self.status.ERROR, 'Could not find the origin');
+    } else if (!request.destId) {
+      setTripServiceStatus(self.status.ERROR, 'Could not find the destination');
+    } else if (!request.time || !(/^\d\d:\d\d$/).test(request.time)) {
+      setTripServiceStatus(self.status.ERROR, 'Error parsing the time');
+    } else {
+      // All checks passed!
+      console.log(request);
+      return true;
+    }
+    return false;
   }
 
   // Fetches departure data and stores it in property
   function getDepartureBoard() {
+    const setErrorStatus = function() {
+      setDepartureBoardStatus(self.status.ERROR);
+    }
     setDepartureBoardStatus(self.status.FETCHING);
     trafficService.getDepartureBoard(self.station.hafasId, function(result) {
       if (!result.Departure || result.Departure.length === 0) {
@@ -287,7 +307,7 @@ function StationInfo() {
         setDepartureBoardStatus(self.status.OK);
       }
       renderDepartureBoard();
-    })
+    }, setErrorStatus);
   }
 
   function getPlacesInfo(type) {
@@ -299,7 +319,8 @@ function StationInfo() {
     };
     // Search for place
     setPlacesStatus(self.status.FETCHING);
-    // Save last request TODO Try counter
+    // TODO: This is not pretty, refactor to untangle this process
+    // I am saving the request to see what the last request used as search parameters
     self.status.placesRequest = request;
     placesService.textSearch(request, getPlacesDetails);
   }
@@ -336,8 +357,10 @@ function StationInfo() {
 
   // Takes an array of places and returns matching item if any or null if none found
   function choosePlace(places) {
-    // TODO: There are some complex patterns Frankfurt(Main)Süd
+    // TODO: Use a single clean regular expression
     var nameMatches = function(place) {
+      // The second part takes care of this common pattern
+      // "Frankfurt Süd" - "Frankfurt(Main)Süd"
       return place.name.indexOf(self.station.name.slice(0, 5)) >= 0 ||
              self.station.name.indexOf(place.name.replace(/\w+\s?\(\w+\)\s?(\w+)/, '$1')) >= 0;
     }
@@ -442,7 +465,7 @@ function StationInfo() {
   }
 
   function renderDepartureBoard() {
-    var html;
+    var html = '';
     if (self.status.departureBoard === self.status.OK) {
       // Make table headings
       html = [
@@ -463,19 +486,18 @@ function StationInfo() {
           '  </tr>',
         ].join('\n');
       }
-    } else if (self.status.departureBoard === self.status.FETCHING) {
-      html = 'Fetching...';
-    } else {
-      html = 'Could not fetch traffic information. (' + self.status.departureBoard + ')';
     }
     updateDomElement('.info-departure-board', html);
   }
 
   function renderRoute(result, status) {
-    // No results TODO
-    result.Trip.forEach(function(item, index) {
-      renderTrip(item, 'Trip' + index);
-    });
+    if (result && result.Trip && result.Trip.length > 0) {
+      result.Trip.forEach(function(item, index) {
+        renderTrip(item, 'Trip' + index);
+      });
+    } else {
+      $('#trip-results').html('<h1>No results</h1>');
+    }
     setTripServiceStatus(self.status.OK);
     $('.route-container').addClass('route-container-show-trips');
   }
@@ -580,22 +602,24 @@ function StationInfo() {
   //
 
   function setDepartureBoardStatus(status) {
+    $('#departure-spinner').toggleClass('visible', status === self.status.FETCHING);
+    $('#departure-alert').toggleClass('visible', status === self.status.ERROR);
     self.status.departureBoard = status;
+    renderDepartureBoard();
   }
 
   // Styles "Go" button according to trip service status
-  function setTripServiceStatus(status) {
+  function setTripServiceStatus(status, message) {
     self.status.tripService = status;
-    if (status === self.status.FETCHING) {
-      // Pulsing button
-      $('#route-go-btn').addClass('route-go-btn-fetching');
-    } else if (status === self.status.OK) {
-      // Green button
-      $('#route-go-btn').removeClass('route-go-btn-fetching')
-                        .addClass('route-go-btn-success');
-    } else { // TODO Error handling
-      $('#route-go-btn').removeClass('route-go-btn-fetching route-go-btn-success');
+    if (message) {
+      $('.route-go-btn-error-message').html(message);
     }
+    $('#route-go-btn').toggleClass('route-go-btn-fetching',
+                                    status === self.status.FETCHING);
+    $('#route-go-btn').toggleClass('route-go-btn-error',
+                                    status === self.status.ERROR);
+    $('#route-go-btn').toggleClass('route-go-btn-success',
+                                    status === self.status.SUCCESS);
   }
 
   // Shows spinner or alert window depending on new status
@@ -610,7 +634,7 @@ function StationInfo() {
       setPlacesStatusMessage();
     }
     $('#places-spinner').toggleClass('visible', showSpinner);
-    $('#alert-places').toggleClass('visible', showAlert);
+    $('#places-alert').toggleClass('visible', showAlert);
   }
 
   // Sets alert window message for places error
@@ -635,8 +659,8 @@ function StationInfo() {
     var result = messages.find(function(msg) {
       return msg.status === self.status.placesService;
     }) || messages.default;
-    $('#alert-places-heading').html(result.heading);
-    $('#alert-places-message').html(result.message);
+    $('#places-alert-heading').html(result.heading);
+    $('#places-alert-message').html(result.message);
   }
 
   //
@@ -685,11 +709,18 @@ function StationInfo() {
     return html + '</div>';
   }
 
+  function getTimepickerValue() {
+    var pad = function(s) {
+      return ('00' + s).slice(-2);
+    }
+    var data = $('#timepicker').data('timepicker');
+    return pad(data.hour) + ':' + pad(data.minute);
+  }
+
   // Returns only hours and minutes, e.g. "08:55:00" -> "08:55"
   function removeTrailingSeconds(time) {
     return time.slice(0, 5);
   }
-
 
   function removeLeadingCityName(locationStr) {
     return locationStr.replace(/^Frankfurt \(Main\)/, '');
@@ -711,7 +742,7 @@ function TrafficService() {
     return baseURL + service + '?' + $.param(params);
   }
 
-  self.ajax = function(url, callback) {
+  self.ajax = function(url, callback, errorHandler) {
     $.ajax({
       url: url,
       method: 'GET',
@@ -719,20 +750,21 @@ function TrafficService() {
       jsonp: 'jsonpCallback'
     }).done(callback).fail(function(err) {
       console.log('Error on AJAX request: ', err.status);
+      errorHandler && errorHandler();
     });
   }
 
-  self.getDepartureBoard = function(hafasId, callback) {
+  self.getDepartureBoard = function(hafasId, callback, errorHandler) {
     var url = self.getUrl('departureBoard', {
       'id': hafasId,
       'maxJourneys': 10
     });
-    self.ajax(url, callback);
+    self.ajax(url, callback, errorHandler);
   }
 
-  self.getRoute = function(request, callback) {
+  self.getRoute = function(request, callback, errorHandler) {
     var url = self.getUrl('trip', request);
-    self.ajax(url, callback);
+    self.ajax(url, callback, errorHandler);
   }
 }
 
@@ -896,7 +928,9 @@ var neighborhoodMapViewModel = function() {
     // Hook up the searchbox "back" and "cancel" buttons
     $('.searchbox-btn-back').click(function() {
       hideStationList();
-      self.info.close();
+      if (self.info.isFullscreen()) {
+        self.info.close();
+      }
     });
     $('.searchbox-btn-cancel').click(function() {
       self.searchTerm('');
@@ -916,19 +950,23 @@ function initStationData() {
 }
 
 function initMap() {
-  map = new google.maps.Map(document.getElementById('map'), {
-    center: { lat: 50.110924, lng: 8.682127 },
-    zoom: 14,
-    styles: mapStyles
-  });
-  initStationData();
-  info = new StationInfo();
+  if (google && google.maps) {
+    map = new google.maps.Map(document.getElementById('map'), {
+      center: { lat: 50.110924, lng: 8.682127 },
+      zoom: 14,
+      styles: mapStyles
+    });
+    initStationData();
+    info = new StationInfo();
 
-  overlay = new google.maps.OverlayView();
-  overlay.draw = function() {
-    this.getPanes().markerLayer.id='markerLayer';
-  };
-  overlay.setMap(map);
+    overlay = new google.maps.OverlayView();
+    overlay.draw = function() {
+      this.getPanes().markerLayer.id='markerLayer';
+    };
+    overlay.setMap(map);
+  } else {
+    $('#map').html('<h1>Networking Issues</h1>');
+  }
 }
 
 initMap();

@@ -67,6 +67,15 @@
           <!-- [Tab: Departure Board] shows a list of outgoing connections -->
           <div class="tab-pane fade" id="departure-board" role="tabpanel">
             <div class="container-fluid container-departure">
+              <div id="departure-spinner" class="spinner">
+                <div class="bounce1"></div>
+                <div class="bounce2"></div>
+                <div class="bounce3"></div>
+              </div>
+              <div id="departure-alert" class="status-alert alert alert-warning">
+                <strong id="departure-alert-heading">Error</strong>
+                <span id="departure-alert-message">There was a problem fetching departure board data.</span>
+              </div>
               <table class="info-departure-board"></table>
             </div>
           </div>
@@ -118,7 +127,10 @@
                   <!-- "Go" Button -->
                   <div class="form-group text-center">
                     <div class="col-xs-12">
-                      <button type="button" class="btn btn-dark btn-lg btn-block" id="route-go-btn"><span class="glyphicon glyphicon-send"></span> Go</button>
+                      <button type="button" class="btn btn-dark btn-lg btn-block" id="route-go-btn">
+                        <div class="route-go-btn-error-message"></div>
+                        <span class="glyphicon glyphicon-send"></span> Go
+                      </button>
                     </div>
                   </div>
                 </form>
@@ -143,15 +155,14 @@
             <div class="container-fluid container-reviews">
               <div class="row">
                 <div class="col-xs-12">
-                  <!-- TODO Move spinner outside absolute positioning -->
                   <div id="places-spinner" class="spinner">
                     <div class="bounce1"></div>
                     <div class="bounce2"></div>
                     <div class="bounce3"></div>
                   </div>
-                  <div id="alert-places" class="status-alert alert alert-warning">
-                    <strong id="alert-places-heading"></strong>
-                    <span id="alert-places-message"></span>
+                  <div id="places-alert" class="status-alert alert alert-warning">
+                    <strong id="places-alert-heading"></strong>
+                    <span id="places-alert-message"></span>
                   </div>
                   <p class="info-rating"></p>
                   <p class="info-review"></p>
@@ -167,9 +178,7 @@
     <script id="info-trip-template" type="text/template">
       <div class="trip-panel panel panel-default">
         <div class="panel-heading">
-          <h4 class="panel-title">
-            <a class="trip-title" role="button" data-toggle="collapse" href="##DATA_ID#"></a>
-          </h4>
+          <a class="panel-link" role="button" data-toggle="collapse" href="##DATA_ID#"><h4 class="trip-title panel-title"></h4></a>
         </div>
         <div id="#DATA_ID#" class="panel-collapse collapse">
           <div class="panel-body trip-body"></div>

@@ -84,17 +84,25 @@ gulp.task('browserSync', function() {
   })
 });
 
+gulp.task('start', ['build', 'browserSync'], function() {
+  gulp.watch('./app/css/*.css', ['css']);
+  gulp.watch('./app/*.html', ['html']);
+  gulp.watch('./app/assets/*', ['assets']);
+  gulp.watch('./app/js/*.js', ['javascript']);
+  // TODO: compare build time with watchify
+});
+
 gulp.task('watch', ['browserSync'], function() {
   gulp.watch('./app/css/*.css', ['css']);
   gulp.watch('./app/*.html', ['html']);
   gulp.watch('./app/assets/*', ['assets']);
   gulp.watch('./app/js/*.js', ['javascript']);
-  // TODO: change to watchify
+  // TODO: compare build time with watchify
 });
 
 gulp.task('clean', del.bind(null, ['maps', 'dist']));
 
-gulp.task('default', function(callback) {
+gulp.task('build', function(callback) {
   runSequence(['css', 'html', 'javascript', 'assets', 'fonts'],
     callback
   )
