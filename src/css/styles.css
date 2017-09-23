@@ -1,10 +1,12 @@
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   height: 100%;
   background-color: #202a25;
   color: #eee;
   font-family: 'Lato', sans-serif;
+  overflow: hidden;
 }
 
 h1,
@@ -37,6 +39,7 @@ h3 {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .title-bar {
@@ -83,6 +86,20 @@ h3 {
   background-color: transparent;
 }
 
+.searchbox-btn-back {
+  visibility: hidden;
+}
+
+.searchbox-btn-back > span {
+  opacity: 0; /* Hide by default */
+}
+
+/* TODO */
+.searchbox-btn-back > span,
+.searchbox-btn-cancel > span {
+  transition: opacity 0.5s ease-in, transform 0.5s ease-out;
+}
+
 .searchbox-btn:active,
 .searchbox-btn:focus,
 .searchbox-btn:hover {
@@ -108,17 +125,14 @@ h3 {
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
   z-index: 100;
   color: #555;
-  transition:
-    border-color 0.15s ease-in-out,
-    box-shadow 0.15s ease-in-out,
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out,
     outline 0.15s ease-in-out;
 }
 
 .searchbox-input:focus {
   border-color: #ff5d73;
   outline: 0;
-  box-shadow:
-    inset 0 1px 1px rgba(0, 0, 0, 0.2),
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2),
     0 0 8px 2px rgba(255, 93, 115, 0.8);
 }
 
@@ -131,8 +145,7 @@ h3 {
   width: 100%;
   margin: 0;
   background-color: #202a25;
-  transition:
-    transform 0.4s cubic-bezier(0.05, 0.4, 0, 1),
+  transition: transform 0.4s cubic-bezier(0.05, 0.4, 0, 1),
     opacity 0.4s cubic-bezier(0.9, 0, 0.1, 1);
   overflow-y: scroll;
   transform: translateY(-100%);
@@ -158,73 +171,23 @@ h3 {
   color: #202a25;
 }
 
-.station-list-active {
-  transform: none !important;
-  opacity: 1;
-}
-
 /* Info Window */
-
-/* Maps internal styles */
-.gm-style-iw {
-  width: 350px !important;
-  top: 19px !important;
-  left: 0 !important;
-}
-
-.iw-container {
-  width: 350px !important;
-}
-
-.iw-close-btn {
-  width: 25px !important;
-  height: 25px !important;
-  opacity: 1 !important;
-  right: 5px !important;
-  top: 25px !important;
-}
-
-.iw-close-glyphicon {
-  font-size: 2.2rem;
-  color: #fff;
-  transition: transform 0.2s ease-out, color 0.2s;
-}
-
-.iw-close-glyphicon:hover {
-  color: #ddd;
-  transform: translateY(1px);
-}
-
-.iw-tail-left,
-.iw-tail-right {
-  background-color: #eee !important;
-  box-shadow: rgba(72, 181, 233, 0.6) 0 1px 6px;
-  z-index: 1;
-}
-
-.iw-tail-left {
-  border-left: 2px solid #202a25;
-}
-
-.iw-tail-right {
-  border-right: 2px solid #202a25;
-}
-
-/* Custom Classes */
-
 .info {
-  width: 350px;
-  height: 400px;
+  position: absolute;
+  z-index: 10;
+  transform: translateY(100vh); /* Hide by default */
+  height: calc(100vh - 50px); /* Search bar has fixed height of 50px */
+  width: 100%;
+  top: 50px;
   display: flex;
   flex-direction: column;
-  box-shadow:
-    0 1px 6px rgba(178, 178, 178, 0.6),
-    inset 1px 2px 1px #555;
+  box-shadow: 0 1px 6px rgba(178, 178, 178, 0.6), inset 1px 2px 1px #555;
   border: 2px solid #202a25;
-  border-radius: 5px 5px 0 0;
   background-color: #eee;
   font-family: Roboto, sans-serif;
   font-weight: 300;
+  transition: transform 0.4s ease-out;
+  overflow: hidden;
 }
 
 .info-nav {
@@ -250,13 +213,11 @@ h3 {
 
 .info-nav > li > a:focus,
 .info-nav > li > a:hover {
-  box-shadow:
-    inset 1px 2px 1px #555,
-    inset 0 -2px 12px rgba(85, 85, 85, 0.3);
+  box-shadow: inset 1px 2px 1px #555, inset 0 -2px 12px rgba(85, 85, 85, 0.3);
 }
 
 .info-header {
-  flex: 0 0 75px;
+  flex: 0 0 85px;
   display: flex;
   background-color: #202a25;
   color: #eee;
@@ -274,11 +235,14 @@ h3 {
 }
 
 .info-thumbnail {
+  flex-shrink: 0;
   position: relative;
-  width: 100px;
-  height: 70px;
+  width: 120px;
+  height: 80px;
+  top: -2px;
+  left: -2px;
   overflow: hidden;
-  border-top-left-radius: 5px;
+  /* border-top-left-radius: 5px; */
 }
 
 .info-thumbnail img {
@@ -292,11 +256,24 @@ h3 {
   transform: translate(-50%, -50%);
 }
 
+.info-name {
+  width: calc(100vw - 140px);
+  word-wrap: break-word;
+}
+
+.info-popout .info-name {
+  width: 100%;
+}
+
+.info-review {
+  margin-top: 3rem;
+}
+
 .info-rating,
 .info-review-heading {
-  font-size: 1.3rem;
-  font-weight: bold;
-  margin-bottom: 0;
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+  margin-top: 1.8rem;
 }
 
 .info-star-rating {
@@ -355,6 +332,10 @@ h3 {
   padding-top: 10px;
 }
 
+.bootstrap-timepicker-widget {
+  z-index: 1000;
+}
+
 .time-mode-radio-btn {
   background-color: #eee;
   color: #666;
@@ -402,17 +383,6 @@ h3 {
   animation: progress-pulse 1s infinite;
 }
 
-@keyframes progress-pulse {
-  from,
-  to {
-    background-color: #4c5762;
-  }
-
-  50% {
-    background-color: #5cb85c;
-  }
-}
-
 .route-go-btn-success {
   background-color: #5cb85c !important;
 }
@@ -428,7 +398,7 @@ h3 {
   top: -3rem;
   left: 50%;
   transform: translateX(-50%);
-  content: "Error fetching route results";
+  content: 'Error fetching route results';
   color: #ff5d73;
 }
 
@@ -438,7 +408,7 @@ h3 {
   top: -3rem;
   left: 50%;
   transform: translateX(-50%);
-  content: "Error fetching route results";
+  content: 'Error fetching route results';
   color: #ff5d73;
 }
 
@@ -460,11 +430,6 @@ h3 {
 .route-form > div > div:last-child {
   margin-top: 0;
   margin-bottom: 0;
-}
-
-.bootstrap-timepicker-widget {
-  z-index: 100 !important;
-  color: #333;
 }
 
 .route-time-mode {
@@ -494,8 +459,7 @@ h3 {
 
 .route-form input:focus {
   border-color: #ff5d73;
-  box-shadow:
-    inset 0 1px 1px rgba(0, 0, 0, 0.075),
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),
     0 0 8px rgba(255, 93, 115, 0.6);
 }
 
@@ -525,7 +489,6 @@ h3 {
 }
 
 /* Route Trips */
-
 .tab-pane-route {
   overflow: hidden;
 }
@@ -563,10 +526,13 @@ h3 {
   height: 100%;
 }
 
+.route-form-col {
+  max-height: 400px;
+}
+
 .route-btn-return {
   position: absolute;
   top: 40%;
-  left: 10px;
   border: none;
   background: none;
   font-size: 2em;
@@ -599,7 +565,7 @@ h3 {
   text-decoration: none;
 }
 
-.panel-heading[aria-expanded=true] {
+.panel-heading[aria-expanded='true'] {
   background-color: #333;
 }
 
@@ -609,12 +575,15 @@ h3 {
 }
 
 .trip-product-badge {
+  font-family: 'Roboto', sans-serif;
+  font-weight: 300;
   background-color: #333;
   color: #fff;
   border-radius: 5px;
   display: inline-block;
   padding: 0.1rem 0.4rem;
   margin-bottom: 0.2rem;
+  white-space: nowrap;
 }
 
 .trip-product-badge-walk {
@@ -645,19 +614,55 @@ h3 {
   vertical-align: 5%;
 }
 
-/* General Animations */
-
-@keyframes transform-none {
-  to {
-    transform: none;
-  }
-}
-
 /* Alert box showing all errors and status messages inside the general tab of the info window */
-
 .status-alert {
   margin-top: 3rem;
-  display: none;
+}
+
+/* Maps internal styles */
+.gm-style-iw {
+  width: 350px !important;
+  /* height: 400px !important; */
+  top: 19px !important;
+  left: 0 !important;
+}
+
+.iw-container {
+  width: 350px !important;
+}
+
+.iw-close-btn {
+  width: 25px !important;
+  height: 25px !important;
+  opacity: 1 !important;
+  right: 5px !important;
+  top: 25px !important;
+}
+
+.iw-close-glyphicon {
+  font-size: 2.2rem;
+  color: #fff;
+  transition: transform 0.2s ease-out, color 0.2s;
+}
+
+.iw-close-glyphicon:hover {
+  color: #ddd;
+  transform: translateY(1px);
+}
+
+.iw-tail-left,
+.iw-tail-right {
+  background-color: #eee !important;
+  box-shadow: rgba(72, 181, 233, 0.6) 0 1px 6px;
+  z-index: 1;
+}
+
+.iw-tail-left {
+  border-left: 2px solid #202a25;
+}
+
+.iw-tail-right {
+  border-right: 2px solid #202a25;
 }
 
 /* Spinner *
@@ -668,10 +673,6 @@ h3 {
   width: 70px;
   text-align: center;
   display: none;
-}
-
-.visible {
-  display: block;
 }
 
 .spinner > div {
@@ -691,31 +692,52 @@ h3 {
   animation-delay: -0.16s;
 }
 
-@keyframes sk-bouncedelay {
-  0%,
-  80%,
-  100% {
-    transform: scale(0);
-  }
+/* State handling */
 
-  40% {
-    transform: scale(1);
-  }
+/* Buttons */
+.app-state-search .searchbox-btn-back,
+.app-state-search-in-progress .searchbox-btn-back,
+.app-state-info .searchbox-btn-back {
+  visibility: visible;
+}
+
+.app-state-search .searchbox-btn-back > span,
+.app-state-search-in-progress .searchbox-btn-back > span {
+  transform: rotate(90deg);
+  opacity: 1;
+}
+
+.app-state-info .searchbox-btn-back > span {
+  transform: rotate(-90deg);
+  opacity: 1;
+}
+
+/* Station info */
+.app-state-item-selected .info {
+  transform: translateY(calc(100vh - 128px)); /* Show only header */
+}
+
+.app-state-info .info {
+  transform: none;
+}
+
+/* When integrated into infowindow */
+.info.info-popout {
+  position: inherit;
+  width: 350px;
+  height: 400px;
+  border-radius: 5px 5px 0 0;
+  transform: none;
+}
+
+/* Search results */
+.app-state-search .station-list,
+.app-state-search-in-progress .station-list {
+  transform: none;
+  opacity: 1;
 }
 
 /* Media Queries */
-@media (max-width: 768px) {
-  .info {
-    flex: 1;
-    width: 100%;
-    height: 100%;
-  }
-
-  .info-active #map {
-    display: none;
-  }
-}
-
 @media (min-width: 768px) {
   .station-list {
     transform: translateX(-100%);
@@ -724,6 +746,16 @@ h3 {
   .station-list,
   .station-list-ul {
     width: 350px;
+  }
+
+  .app-state-info .searchbox-btn-back {
+    visibility: hidden;
+  }
+
+  .app-state-search .searchbox-btn-back > span,
+  .app-state-search-in-progress .searchbox-btn-back > span {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -749,5 +781,39 @@ h3 {
 
   .searchbox {
     padding-top: 0;
+  }
+
+  .searchbox-btn-back {
+    visibility: hidden !important;
+  }
+}
+
+/* Animations */
+@keyframes transform-none {
+  to {
+    transform: none;
+  }
+}
+
+@keyframes sk-bouncedelay {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+
+  40% {
+    transform: scale(1);
+  }
+}
+
+@keyframes progress-pulse {
+  from,
+  to {
+    background-color: #4c5762;
+  }
+
+  50% {
+    background-color: #5cb85c;
   }
 }

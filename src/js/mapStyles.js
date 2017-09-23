@@ -1,4 +1,4 @@
-module.exports =
+const mapStyles =
 [
   {
     "elementType": "geometry",
@@ -171,3 +171,5 @@ module.exports =
     ]
   }
 ];
+
+export default mapStyles;
