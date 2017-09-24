@@ -4,21 +4,38 @@ import './ko.dateBindings';
 import StationInfo from './StationInfo';
 import StatusCodes from './StatusCodes';
 import States from './States';
+import Console from './Console';
 import placeholderImg from '../icons/ic_train_thumbnail.svg';
 
-const DESKTOP = 'DESKTOP';
+// Describes the current display mode
+// INFO_WINDOW -> Station info is displayed in GoogleMaps InfoWindow on larger devices
+const INFO_WINDOW = 'INFO_WINDOW';
+// MOBILE -> Station info is displayed full width optimized for smaller devices
 const MOBILE = 'MOBILE';
+// The minimum viewport width for InfoWindow
+const INFO_WINDOW_BREAKPOINT = 768; // px
 
-const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, callbackRegister) {
+// Our view model expects a promise that resolves with { map, stations }
+// when GoogleMaps finishes loading
+const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
+  // Shows status of critical dependencies
+  this.appStatus = ko.observable(StatusCodes.FETCHING);
+  this.appStatusMessage = ko.observable('');
+  // map, infowindow, stations are set when mapLoading resolves
   this.map = null;
   this.infowindow = null;
-  this.stations = [];
+  this.stations = ko.observable([]);
   this.windowWidth = ko.observable();
+  // Expect mobile device by default
   this.displayMode = ko.observable(MOBILE);
+  // This is the currently selected station
   this.activeItem = ko.observable(null);
+  // Holds application state, mainly used for styles
   this.state = ko.observable(States.Idle);
+  // Focus search field by default
   this.searchFocus = ko.observable(true);
   this.searchTerm = ko.observable('');
+  // Holds all the station information displayed
   this.infoContent = {
     thumbnail: ko.observable(),
     name: ko.observable(),
@@ -40,12 +57,23 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
       places_message: ko.observable(),
     },
   };
-  this.infoStyles = {
-    'info-glance': false,
-    'info-in': false,
-  };
 
-  // Reset all data to defaults
+  // Verify data in order to set styles accordingly
+  this.infoContent.routePlannerTimeValid = ko.pureComputed(() =>
+    moment(this.infoContent.routePlannerTime(), 'HH:mm').isValid());
+
+  this.infoContent.routePlannerOriginValid = ko.pureComputed(() =>
+    this.getStationId(this.infoContent.routePlannerOrigin()));
+
+  this.infoContent.routePlannerDestinationValid = ko.pureComputed(() =>
+    this.getStationId(this.infoContent.routePlannerDestination()));
+
+  this.infoContent.routePlannerAllValid = ko.pureComputed(() =>
+    this.infoContent.routePlannerTimeValid() &&
+      this.infoContent.routePlannerOriginValid() &&
+      this.infoContent.routePlannerDestinationValid());
+
+  // Set station information to default values
   this.purgeData = () => {
     this.infoContent.thumbnail(placeholderImg);
     this.infoContent.name('');
@@ -67,8 +95,29 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
   };
   this.purgeData();
 
+  // Info styles used for mobile view
+  this.infoStyles = {
+    // Show only title
+    'info-glance': false,
+    // Show fullscreen
+    'info-in': false,
+  };
+
+  // Add styles for route planner "go" button
+  this.routePlannerGoButtonStyle = ko.pureComputed(() => {
+    if (this.infoContent.status.route() === StatusCodes.OK) {
+      return 'route-go-btn-success';
+    } else if (this.infoContent.status.route() === StatusCodes.FETCHING) {
+      return 'route-go-btn-fetching';
+    } else if (this.infoContent.status.route() === StatusCodes.ERROR) {
+      return 'route-go-btn-error';
+    }
+    return '';
+  });
+
+  // Open GoogleMaps InfoWindow and attach our DOM node
   this.openInfoWindow = () => {
-    console.log('open iw');
+    Console('[NeighborHoodViewModel] Opening info window');
     if (this.infowindow && this.activeItem()) {
       this.infowindow.open(this.map, this.activeItem().marker);
     }
@@ -76,51 +125,54 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     if ($(iwAnchor).length > 0) {
       $('.info').insertAfter($(iwAnchor));
     } else {
-      console.log('(openInfoWindow) iwAnchor does not exist.', iwAnchor);
+      Console('[NeighborHoodViewModel] iwAnchor does not exist.');
     }
   };
 
+  // Close GoogleMaps InfoWindow and move our DOM node to its container
   this.closeInfoWindow = () => {
-    console.log('close iw');
+    Console('[NeighborHoodViewModel] Closing info window');
     $('.info').appendTo($('.info-container'));
     if (this.infowindow) {
       this.infowindow.close();
     }
   };
 
-  this.showInfoWindow = ko.pureComputed(() => this.displayMode() === 'DESKTOP' && this.activeItem());
+  this.isInfoWindowOpen = ko.pureComputed(() => this.displayMode() === INFO_WINDOW && this.activeItem());
 
+  // When display mode changes move our content respectfully
   this.displayMode.subscribe((newValue) => {
-    console.log('switch display mode to ', newValue);
+    Console('[NeighborHoodViewModel] Switching display mode to ', newValue);
     if (this.activeItem() === null) {
-      // Nothing to do
-      return;
+      return; // Nothing to do
     }
-    if (newValue === DESKTOP) {
+    if (newValue === INFO_WINDOW) {
       this.openInfoWindow();
     } else {
       this.closeInfoWindow();
     }
   });
 
+  // Set our display mode according to width of viewport
   this.windowWidth.subscribe((newWidth) => {
-    // console.log('windowWidth to ', $(window).width());
-    const breakpoint = 768;
-    if (newWidth > breakpoint) {
-      // console.log('display mode: DESKTOP');
-      this.displayMode(DESKTOP);
+    if (newWidth >= INFO_WINDOW_BREAKPOINT) {
+      this.displayMode(INFO_WINDOW);
     } else {
-      // console.log('display mode: MOBILE');
       this.displayMode(MOBILE);
     }
   });
 
+  // Make window width available as observable
   $(window).on('resize', () => {
     this.windowWidth($(window).width());
-    // console.log('resizing to ', $(window).width());
   });
 
-  /* State handling */
+  //-----------------
+  // State handling
+  //-----------------
+
+  // Back ◀ button inside search field
+  // Behaviour depends on current state, made obvious through different css styles
   this.onBack = () => {
     const { state } = this;
     if (state() === States.Search || state() === States.SearchInProgress) {
@@ -134,6 +186,8 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     }
   };
 
+  // Cancel ⓧ button inside search field
+  // Empty and focus search
   this.onCancel = () => {
     const { state } = this;
     if (state() === States.Info) {
@@ -143,6 +197,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     this.searchFocus(true);
   };
 
+  // Maximize the station info when header is clicked
   this.onClickInfoHeader = () => {
     const { state } = this;
     if (state() === States.ItemSelected) {
@@ -150,10 +205,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     }
   };
 
-  this.infoContent.routePlannerTime.subscribe((newValue) => {
-    console.log(newValue);
-  });
-
+  // Show station list when user begins typing
   this.searchTerm.subscribe((newValue) => {
     const { state } = this;
     if (
@@ -166,43 +218,45 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     }
   });
 
+  // Merges new data into object holding observables
   // TODO: should be a general deep update independent from structure
   this.processUpdate = (state, update) => {
     for ([key, value] of Object.entries(update)) {
       if (ko.isObservable(state[key])) {
         state[key](value);
-        console.log(`setting state.${key} to`, value);
+        Console(`[NeighborHoodViewModel] setting state.${key} to`, value);
       } else if (key === 'status') {
         for ([subKey, subValue] of Object.entries(update[key])) {
           state[key][subKey](subValue);
-          console.log(`setting state.${key}.${subKey} to `, subValue);
+          Console(`[NeighborHoodViewModel] setting state.${key}.${subKey} to `, subValue);
         }
       }
     }
   };
 
+  // Update station information content
   this.handleUpdate = (newContent) => {
     this.processUpdate(this.infoContent, newContent);
   };
 
-  // Give stationInfo a callback to update my content
+  // Give stationInfo a function to update my content
   this.stationInfo = new StationInfo(this.handleUpdate);
 
-  // Track the currently selected station
+  // Search results are all stations which names match my search query.
   this.searchResults = ko.pureComputed(() =>
     ko.utils.arrayFilter(
-      stations,
+      this.stations(),
       station => station.name.toLowerCase().indexOf(this.searchTerm().toLowerCase()) !== -1,
     ));
 
   // Handle updates of searchResults
   this.searchResults.subscribe((newValue) => {
-    // If the active Item is not in the search results, reset it
+    // If the currently selected item is not in the new search results, deselect it.
     if (this.activeItem() && $.inArray(this.activeItem(), newValue) === -1) {
       this.clearActive();
     }
-    // Display markers if they are in the new results
-    stations.forEach((station) => {
+    // Display only markers that belong to my new search results
+    this.stations().forEach((station) => {
       if ($.inArray(station, newValue) === -1) {
         station.hideFromMap();
       } else {
@@ -211,20 +265,22 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     });
   });
 
-  // [Cosmetic DOM manipulation]
-  // Switch to first tab of info
+  // Switch to the first tab of my station information
+  // TODO: I could probably make a custom binding for this,
+  //       although it doesn't seem justified in this case.
   this.resetTab = () => {
-    $('a[href="#departure-board"]').tab('show');
+    $('a[href="#departure-board"]').tab('show'); // cosmetic DOM manipulation
   };
 
-  // Active item tracking
+  // Select a new station and display its info to the user
   this.makeActive = (station) => {
-    this.activeItem(station);
-    if (this.displayMode() === DESKTOP) {
-      this.openInfoWindow();
-    }
     this.purgeData();
     this.resetTab();
+    this.activeItem(station);
+    if (this.displayMode() === INFO_WINDOW) {
+      this.openInfoWindow();
+    }
+    // Set the 'From' field to this station
     this.infoContent.routePlannerOrigin(station.name);
     this.state(States.ItemSelected);
     this.stationInfo.fetch(station);
@@ -235,13 +291,12 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     this.purgeData();
     this.resetTab();
     this.activeItem(null);
-    if (this.displayMode() === DESKTOP) {
-      console.log('clear active > close iw');
+    if (this.displayMode() === INFO_WINDOW) {
       this.closeInfoWindow();
     }
   };
 
-  // Change highlight status on map
+  // Remove marker highlight from currently selected item on change
   this.activeItem.subscribe(
     (oldStation) => {
       if (oldStation) {
@@ -249,22 +304,24 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
       }
     },
     null,
-    'beforeChange',
+    'beforeChange', // This way we get the value before the change
   );
 
+  // Highlight the newly selected station on the map
   this.activeItem.subscribe((newStation) => {
     if (newStation) {
       newStation.toggleHighlight(true);
     }
   });
 
+  // Switch origin and destination input values in route planner form
   this.switchInputs = () => {
     const tmp = this.infoContent.routePlannerOrigin();
     this.infoContent.routePlannerOrigin(this.infoContent.routePlannerDestination());
     this.infoContent.routePlannerDestination(tmp);
   };
 
-  // Fetch route
+  // Kick off fetching of route planner results
   this.fetchRoute = () => {
     const origin = this.infoContent.routePlannerOrigin();
     const destination = this.infoContent.routePlannerDestination();
@@ -278,10 +335,12 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     });
   };
 
+  // Clearing trip results automatically returns the user to the route planner form
   this.clearTripResults = () => {
     this.infoContent.trips([]);
   };
 
+  // Return a nicely formatted title for a single route result
   this.constructTripTitle = (trip) => {
     const arrow = '<span class="glyphicon glyphicon-chevron-right trip-chevron"></span>';
     return `${trip.legs[0].departure} - ${trip.legs.slice(-1)[0].arrival}
@@ -291,6 +350,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     .join('')}`;
   };
 
+  // Return a div with the right classes to get differently styled badges
   this.createBadge = (product) => {
     let productClass = '';
     if (product.search(/^\s*U/) === 0) {
@@ -307,7 +367,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     return `<div class="trip-product-badge ${productClass}">${product}</div>`;
   };
 
-  // Scroll animation
+  // Scroll the station list to show the given item on top
   this.scrollToElement = (element) => {
     const listNumber = this.searchResults().indexOf(element);
     const scrollTop = $('.station-list').scrollTop();
@@ -324,7 +384,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     );
   };
 
-  // Converts rating to glyphicons
+  // Convert rating to glyphicons
   // For example 4 -> ★★★★☆
   this.starRating = (rating) => {
     const star = '<span class="glyphicon glyphicon-star"></span>';
@@ -332,18 +392,17 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     return `${star.repeat(rating)}${starEmpty.repeat(5 - rating)}`;
   };
 
-  // Returns the stations id (for traffic services)
+  // Returns the stations id (necessary for traffic services)
   this.getStationId = (stationName) => {
     // TODO: If multiple matches for /stationName/i are found, ask user to choose
-    const result = this.stations.find(station => stationName.toLowerCase() === station.name.toLowerCase());
+    const result = this.stations().find(station => stationName.toLowerCase() === station.name.toLowerCase());
     return result ? result.hafasId : null;
   };
 
-  // Changes the internal google info window representation to make it look sleeker
+  // Add some styles to InfoWindow elements
+  // WARNING: Relying on inner working of Maps API. May stop working with unexpectedly.
+  // Adapted from http://en.marnoto.com/2014/09/5-formas-de-personalizar-infowindow.html
   this.setInfoStyles = () => {
-    // Adapted from http://en.marnoto.com/2014/09/5-formas-de-personalizar-infowindow.html
-    // WARNING: Relying on inner working of Maps API. May stop working with newer versions.
-
     // Reference to the DIV which receives the contents of the info window
     const iwOuter = $('.gm-style-iw');
     $(iwOuter)
@@ -376,24 +435,35 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(stations, cal
     iwCloseBtn.html('<span class="iw-close-glyphicon glyphicon glyphicon-remove"></span>');
     // The API automatically applies 0.7 opacity to the button after the mouseout event.
     // This function reverses this event to the desired value.
-    iwCloseBtn.mouseout(function () {
+    iwCloseBtn.mouseout(function mouseOutHandler() {
       $(this).css({ opacity: '1' });
     });
   };
 
-  // Gets called from index.js when map is initialized
-  // TODO: Try using promises
-  callbackRegister.onMapLoaded = (map) => {
-    stations.forEach((station) => {
-      station.registerClickHandler(() => this.makeActive(station));
+  // This promise gets resolved once our map is ready
+  mapLoading
+    .then(({ map, stations }) => {
+      // Select station when marker is clicked
+      stations.forEach((station) => {
+        station.registerClickHandler(() => this.makeActive(station));
+      });
+      this.stations(stations);
+      this.map = map;
+      // The station information is dynamically attached to our InfoWindow on large screens.
+      // Setting no content results in DOM structure not getting built as expected.
+      // The anchor element facilitates moving station information to the InfoWindow.
+      this.infowindow = new google.maps.InfoWindow({ content: '<div id="iw-anchor"></div>' });
+      // Change styles every time InfoWindow gets attached to the DOM
+      google.maps.event.addListener(this.infowindow, 'domready', this.setInfoStyles);
+      // Make sure we have the correct displayMode for our screen
+      this.windowWidth($(window).width());
+      this.appStatus(StatusCodes.OK);
+    })
+    .catch((errorMessage) => {
+      // Some error occurred when loading our Google Maps
+      this.appStatus(StatusCodes.ERROR);
+      this.appStatusMessage(errorMessage);
     });
-    this.stations = stations;
-    this.map = map;
-    // Setting content to ensure DOM structure gets fully built as expected
-    this.infowindow = new google.maps.InfoWindow({ content: '<div id="iw-anchor"></div>' });
-    google.maps.event.addListener(this.infowindow, 'domready', this.setInfoStyles);
-    this.windowWidth($(window).width());
-  };
 };
 
 export default NeighborhoodMapViewModel;

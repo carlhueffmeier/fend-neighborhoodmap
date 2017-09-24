@@ -2,7 +2,12 @@ import TrafficService from './TrafficService';
 import GooglePlacesRequest from './GooglePlacesRequest';
 import StatusCodes from './StatusCodes';
 
+// There is only one instance of StationInfo that is initialized with
+// the update() function. we only need to call fetch(station) to get
+// all station information
 class StationInfo {
+  // Gets initialized with update(newData) callback
+  // newData is an object with key: value pairs
   constructor(update) {
     this.update = update;
     this.placesRequest = null;
@@ -24,7 +29,7 @@ class StationInfo {
   }
 
   //
-  // Google Places
+  // GooglePlaces
   handlePlacesError(err) {
     this.setStatus({
       places: StatusCodes.ERROR,
@@ -37,7 +42,7 @@ class StationInfo {
     this.setStatus({ places: StatusCodes.OK });
   }
 
-  // Get Google Places info
+  // Kick off GooglePlaces request
   startPlacesRequest(station) {
     const request = {
       query: station.name,
@@ -55,7 +60,7 @@ class StationInfo {
   }
 
   //
-  // Departures
+  // Departure Info
   handleDepartureError(err) {
     this.setStatus({
       departure: StatusCodes.ERROR,
@@ -88,14 +93,12 @@ class StationInfo {
   }
 
   handleRouteSuccess(result) {
-    console.log(result);
     this.update({ trips: result });
     this.setStatus({ route: StatusCodes.OK });
   }
 
   // Start request to fetch departure board data
   fetchRoute(request) {
-    console.log(request);
     this.setStatus({ route: StatusCodes.FETCHING });
     TrafficService.getRoute(
       request,

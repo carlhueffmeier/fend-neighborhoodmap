@@ -46,6 +46,38 @@ h3 {
   display: none;
 }
 
+.content,
+.fullscreen-status {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.fullscreen-status {
+  justify-content: center;
+  align-items: center;
+}
+
+.glyphicon-big {
+  font-size: 10rem;
+}
+
+.fullscreen-status-message {
+  font-size: 3rem;
+}
+
+.fullscreen-status > .fullscreen-spinner {
+  width: 100%;
+  margin: 3rem;
+}
+
+.fullscreen-status > .fullscreen-spinner > div {
+  background-color: #5cb85c;
+  margin: 5px;
+  height: 30px;
+  width: 30px;
+}
+
 .content {
   flex: 1;
   display: flex;
@@ -127,13 +159,6 @@ h3 {
   color: #555;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out,
     outline 0.15s ease-in-out;
-}
-
-.searchbox-input:focus {
-  border-color: #ff5d73;
-  outline: 0;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.2),
-    0 0 8px 2px rgba(255, 93, 115, 0.8);
 }
 
 .station-list {
@@ -393,12 +418,10 @@ h3 {
 }
 
 .route-go-btn-error-message {
-  display: none;
   position: absolute;
   top: -3rem;
   left: 50%;
   transform: translateX(-50%);
-  content: 'Error fetching route results';
   color: #ff5d73;
 }
 
@@ -455,12 +478,6 @@ h3 {
   display: flex;
   flex-direction: row;
   align-items: center;
-}
-
-.route-form input:focus {
-  border-color: #ff5d73;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075),
-    0 0 8px rgba(255, 93, 115, 0.6);
 }
 
 .route-form .route-switch-btn:active,
@@ -672,7 +689,6 @@ h3 {
   margin: 100px auto 0;
   width: 70px;
   text-align: center;
-  display: none;
 }
 
 .spinner > div {
@@ -692,7 +708,7 @@ h3 {
   animation-delay: -0.16s;
 }
 
-/* State handling */
+/* app-state Styles */
 
 /* Buttons */
 .app-state-search .searchbox-btn-back,
@@ -715,6 +731,22 @@ h3 {
 /* Station info */
 .app-state-item-selected .info {
   transform: translateY(calc(100vh - 128px)); /* Show only header */
+}
+
+.pull-up-cue {
+  position: fixed;
+  z-index: 9999;
+  top: calc(100vh - 100px);/* Place over header border */
+  width: 100%;
+  text-align: center;
+  visibility: hidden;
+  font-size: 4rem;
+  color: #607D8B;
+}
+
+.app-state-item-selected .pull-up-cue {
+  visibility: visible;
+  animation: pulse 4s ease-in-out infinite;
 }
 
 .app-state-info .info {
@@ -815,5 +847,18 @@ h3 {
 
   50% {
     background-color: #5cb85c;
+  }
+}
+
+@keyframes pulse {
+  from,
+  to {
+    transform: scale(0.8, 0.8);
+    opacity: 0;
+  }
+
+  50% {
+    transform: none;
+    opacity: 0.4;
   }
 }

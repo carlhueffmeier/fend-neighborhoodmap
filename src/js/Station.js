@@ -5,14 +5,14 @@ const defaultIcon = () => ({
   url: stationIcon,
   scaledSize: new google.maps.Size(24, 24),
   origin: new google.maps.Point(0, 0),
-  anchor: new google.maps.Point(12, 20)
+  anchor: new google.maps.Point(12, 20),
 });
 
 const highlightedIcon = () => ({
   url: stationIconHighlight,
   scaledSize: new google.maps.Size(32, 32),
   origin: new google.maps.Point(0, 0),
-  anchor: new google.maps.Point(16, 27)
+  anchor: new google.maps.Point(16, 27),
 });
 
 class Station {

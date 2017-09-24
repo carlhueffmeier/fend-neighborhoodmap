@@ -1,6 +1,8 @@
 import 'jquery';
+import Console from './Console';
 
 const baseURL = 'https://www.rmv.de/hapi/';
+// TODO: Store API key in separate json file
 const baseParameter = {
   accessId: 'b73b4c0a-3fda-46e2-803a-46c4ad8cda0c',
   format: 'json',
@@ -21,9 +23,10 @@ const ajax = (url, callback, errorHandler = null) => {
   })
     .done(callback)
     .fail((err) => {
-      console.log('Error on AJAX request: ', err.status);
+      const errorMessage = `Error on AJAX request: ${err.status}`;
+      Console(`[TrafficService] ${errorMessage}`);
       if (errorHandler) {
-        errorHandler(err);
+        errorHandler(errorMessage);
       }
     });
 };
@@ -34,7 +37,7 @@ const prettyPrintTime = time => time.replace(/(\d\d:\d\d):\d\d/, '$1');
 const abbreviateStationName = name => name.replace(/^\s*Frankfurt \(Main\)\s*/, '');
 
 const prettyPrintDuration = (duration) => {
-  // Pretty sure this can be done in one convoluted regex
+  // TODO: Pretty sure this can be done in a single regex
   let str = '';
   const hours = duration.match(/(\d+)H/);
   const minutes = duration.match(/(\d+)M/);
@@ -47,10 +50,12 @@ const prettyPrintDuration = (duration) => {
   return str;
 };
 
-// Wrapper for callback, making the data more usable
+// Wrapper for callback, making the results more usable
 const handleDepartureResponse = (callback, errorHandler) => (result) => {
   if (!result.Departure) {
-    return errorHandler(result);
+    const errorMessage = `Received strange results: ${result}`;
+    Console(`[TrafficService] ${errorMessage}`);
+    return errorHandler(errorMessage);
   }
   return callback(result.Departure.map(connection => ({
     line: connection.name,
@@ -61,7 +66,9 @@ const handleDepartureResponse = (callback, errorHandler) => (result) => {
 
 const handleRouteResponse = (callback, errorHandler) => (result) => {
   if (!result.Trip) {
-    return errorHandler(result);
+    const errorMessage = `Received strange results: ${result}`;
+    Console(`[TrafficService] ${errorMessage}`);
+    return errorHandler(errorMessage);
   }
   return callback(result.Trip.map(trip => ({
     duration: prettyPrintDuration(trip.duration),
@@ -76,7 +83,6 @@ const handleRouteResponse = (callback, errorHandler) => (result) => {
   })));
 };
 
-// Interfaces with local transit provider API
 const TrafficService = {
   getDepartureBoard(hafasId, callback, errorHandler = null) {
     const url = getUrl('departureBoard', {

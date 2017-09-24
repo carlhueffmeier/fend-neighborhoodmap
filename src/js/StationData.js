@@ -1,4 +1,4 @@
-module.exports =
+const StationData =
 [
   {
     "hafasId": 3000522,
@@ -8021,3 +8021,5 @@ module.exports =
     "lng": "8.742736134"
   }
 ];
+
+export default StationData;

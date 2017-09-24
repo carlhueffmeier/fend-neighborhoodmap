@@ -7,6 +7,8 @@ import 'bootstrap-timepicker';
 // Copyright (c) 2013 Hugo Zapata
 // (Slightly adapted for my use case)
 
+// Keeping the Date Picker for future use
+
 /* Adds the binding dateValue to use with bootstrap-datepicker
    Usage :
    <input type="text" data-bind="dateValue:birthday"/>
@@ -68,14 +70,7 @@ ko.bindingHandlers.timeValue = {
       $(element).data('updating', true);
       value(mdate.toDate());
       $(element).data('updating', false);
-      $(element)
-        .timepicker()
-        .on('show.timepicker', (e) => {
-          console.log(`The time is ${e.time.value}`);
-          console.log(`The hour is ${e.time.hours}`);
-          console.log(`The minute is ${e.time.minutes}`);
-          console.log(`The meridian is ${e.time.meridian}`);
-        });
+      $(element).timepicker();
     });
   },
   update(element, valueAccessor, allBindings, viewModel, bindingContext) {

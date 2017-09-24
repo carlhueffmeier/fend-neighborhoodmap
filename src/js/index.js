@@ -1,7 +1,7 @@
 import ko from 'knockout';
 import NeighborhoodMapViewModel from './NeighborhoodMapViewModel';
 import initMap from './initMap';
-import mapData from './mapData';
+import StationData from './StationData';
 import Station from './Station';
 import Console from './Console';
 import '../css/styles.css';
@@ -9,32 +9,24 @@ import '../css/styles.css';
 // [Webpack] Require our html file
 require('file-loader?name=[name].[ext]!../index.html');
 
-const stations = mapData.map(stationData => new Station(stationData));
+// Initialize stations with basic information
+// TODO: Maybe it would make sense to store this in a database
+const stations = StationData.map(stationData => new Station(stationData));
 
-const callbackRegister = {
-  onMapLoaded: null,
-};
-
-const handleMapLoaded = (map) => {
-  stations.forEach(station => station.setMap(map));
-  if (callbackRegister.onMapLoaded) {
-    callbackRegister.onMapLoaded();
-  } else {
-    console.log(
-      'View model callback is ',
-      callbackRegister.onMapLoaded,
-      '. This should not happen.',
-    );
-  }
-};
-
-const handleMapError = (err) => {
-  console.log('Error loading Google maps: ', err);
-  // TODO: Regression
-};
-
-// Create callbacks for google maps
-initMap(handleMapLoaded, handleMapError);
+// Resolves when map is loaded
+const promise = new Promise((resolve, reject) => {
+  // Creates callbacks for google maps
+  initMap()
+    .then((map) => {
+      stations.forEach(station => station.setMap(map));
+      resolve({ map, stations });
+    })
+    .catch(() => {
+      const errorMessage = 'Could not load Google Maps';
+      Console(`[index] ${errorMessage}`);
+      reject(Error(errorMessage));
+    });
+});
 
 // Apply Knockout view model
-ko.applyBindings(new NeighborhoodMapViewModel(stations, callbackRegister));
+ko.applyBindings(new NeighborhoodMapViewModel(promise));

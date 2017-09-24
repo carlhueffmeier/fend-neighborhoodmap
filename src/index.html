@@ -16,9 +16,25 @@
       <h1 class="title">Frankfurt Subway</h1>
     </div>
 
-    <div id="attribution"></div>
+    <div id="attribution">
+      <!-- Necessary for Google Places -->
+    </div>
 
-    <div class="content">
+    <div class="fullscreen-status" data-bind="visible: appStatus() === 'ERROR'">
+      <span class="glyphicon-big glyphicon glyphicon-warning-sign"></span>
+      <div class="fullscreen-status-message" data-bind="text: appStatusMessage()"></div>
+    </div>
+
+    <div class="fullscreen-status" data-bind="visible: appStatus() === 'FETCHING'">
+      <div class="fullscreen-status-message">Loading Map</div>
+      <div class="spinner fullscreen-spinner">
+        <div class="bounce1"></div>
+        <div class="bounce2"></div>
+        <div class="bounce3"></div>
+      </div>
+    </div>
+
+    <div class="content" data-bind="visible: appStatus() === 'OK'">
 
       <div class="search">
         <div class="searchbox">
@@ -39,7 +55,7 @@
       </div>
 
       <div class="info-container" data-bind="visible: displayMode() === 'MOBILE'">
-        <div class="info" data-bind="css: { 'info-popout': showInfoWindow() }">
+        <div class="info" data-bind="css: { 'info-popout': isInfoWindowOpen() }">
           <div class="info-header" data-bind="click: onClickInfoHeader">
             <div class="info-thumbnail">
               <img data-bind="attr: { src: infoContent.thumbnail, alt: infoContent.name }">
@@ -68,14 +84,14 @@
             <!-- [Tab: Departure Board] shows a list of outgoing connections -->
             <div class="tab-pane fade in active" id="departure-board" role="tabpanel">
               <div class="container-fluid container-departure">
-                <div id="departure-spinner" class="spinner" data-bind="visible: infoContent.status.departure() === 'FETCHING'">
+                <div class="spinner" data-bind="visible: infoContent.status.departure() === 'FETCHING'">
                   <div class="bounce1"></div>
                   <div class="bounce2"></div>
                   <div class="bounce3"></div>
                 </div>
                 <div id="departure-alert" class="status-alert alert alert-warning" data-bind="visible: infoContent.status.departure() === 'ERROR'">
                   <strong id="departure-alert-heading">Error</strong>
-                  <span id="departure-alert-message">There was a problem fetching departure board data.</span>
+                  <span id="departure-alert-message" data-bind="text: infoContent.status.departure_message">There was a problem fetching departure board data.</span>
                 </div>
                 <table class="info-departure-board" data-bind="visible: infoContent.status.departure() === 'OK'">
                   <thead>
@@ -105,7 +121,7 @@
 
                     <div>
                       <!-- Time selection -->
-                      <div class="route-time-form form-group">
+                      <div class="route-time-form form-group" data-bind="css: infoContent.routePlannerTimeValid() ? 'has-success' : 'has-warning'">
                         <div class="col-xs-11">
                           <div class="input-group input-group bootstrap-timepicker timepicker">
                             <span class="input-group-btn">
@@ -122,11 +138,11 @@
                       </div>
 
                       <!-- Origin and destination inputs -->
-                      <div class="form-group form-group-centered">
+                      <div class="form-group form-group-centered" data-bind="css: infoContent.routePlannerOriginValid() ? 'has-success' : 'has-warning'">
                         <label for="route-input-origin" class="col-xs-2 control-label">From</label>
                         <div class="col-xs-9">
                           <input class="route-input-station form-control" type="text" id="route-input-origin" placeholder="Origin" autocorrect="off"
-                            spellcheck="false" data-bind="value: infoContent.routePlannerOrigin">
+                            spellcheck="false" data-bind="textInput: infoContent.routePlannerOrigin">
                         </div>
                         <div class="col-xs-1 route-switch-btn-col">
                           <button type="button" class="btn-default route-switch-btn" data-bind="click: switchInputs">
@@ -134,11 +150,11 @@
                           </button>
                         </div>
                       </div>
-                      <div class="form-group form-group-centered">
+                      <div class="form-group form-group-centered" data-bind="css: infoContent.routePlannerDestinationValid() ? 'has-success' : 'has-warning'">
                         <label for="route-input-destination" class="col-xs-2 control-label">To</label>
                         <div class="col-xs-9">
                           <input class="route-input-station form-control" type="text" id="route-input-destination" placeholder="Destination" autocorrect="off"
-                            spellcheck="false" data-bind="value: infoContent.routePlannerDestination">
+                            spellcheck="false" data-bind="textInput: infoContent.routePlannerDestination">
                         </div>
                       </div>
                     </div>
@@ -146,8 +162,8 @@
                     <!-- "Go" Button -->
                     <div class="form-group text-center">
                       <div class="col-xs-12">
-                        <button type="button" class="btn btn-dark btn-lg btn-block" id="route-go-btn" data-bind="click: fetchRoute">
-                            <div class="route-go-btn-error-message"></div>
+                        <button type="button" class="btn btn-dark btn-lg btn-block" id="route-go-btn" data-bind="click: fetchRoute, enable: infoContent.routePlannerAllValid(), css: routePlannerGoButtonStyle">
+                            <div class="route-go-btn-error-message" data-bind="visible: infoContent.status.route() === 'ERROR', text: infoContent.status.route_message"></div>
                             <span class="glyphicon glyphicon-send"></span> Go
                           </button>
                       </div>
@@ -226,9 +242,12 @@
           <!-- tab-content -->
         </div>
         <!-- info -->
+
+        <!-- This is the pull up cue for minimized info in mobile view -->
+        <span class="glyphicon glyphicon-chevron-up pull-up-cue"></span>
+        
       </div>
       <!-- info container -->
-
 
       <div id="map"></div>
 

@@ -1,7 +1,7 @@
-const DEBUG = true;
+const DEBUG = false;
 
-export default function Console(parameters) {
+export default function Console() {
   if (DEBUG) {
-    console.log(...parameters);
+    console.log(...arguments);
   }
 }
