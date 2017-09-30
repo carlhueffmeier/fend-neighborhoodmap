@@ -4,16 +4,12 @@ const ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 const config = {
   resolve: {
-    modules: [
-      path.resolve('node_modules'),
-      path.resolve('node_modules/kendo/dist/js'), // the path to the minified scripts
-    ],
+    modules: [path.resolve('node_modules')],
   },
   entry: ['bootstrap-loader', './src/js/index.js'],
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
-    publicPath: 'dist',
   },
   devtool: 'source-map',
   module: {
