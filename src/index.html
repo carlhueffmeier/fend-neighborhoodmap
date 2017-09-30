@@ -10,7 +10,7 @@
 
 <body>
 
-  <div class="container-main" data-bind="css: state">
+  <div class="container-main">
 
     <div class="title-bar">
       <h1 class="title">Frankfurt Subway</h1>
@@ -38,8 +38,8 @@
 
       <div class="search">
         <div class="searchbox">
-          <button class="searchbox-btn searchbox-btn-back" data-bind="click: onBack">
-              <span class="glyphicon glyphicon-chevron-left"></span>
+          <button class="searchbox-btn searchbox-btn-toggle" data-bind="click: onToggle, css: toggleButtonStyles()">
+              <span class="glyphicon glyphicon-chevron-down"></span>
             </button>
           <input class="input-lg searchbox-input" data-bind="textInput: searchTerm, hasFocus: searchFocus" />
           <button class="searchbox-btn searchbox-btn-cancel" data-bind="click: onCancel, visible: searchTerm().length > 0">
@@ -47,7 +47,7 @@
             </button>
         </div>
 
-        <div class="station-list">
+        <div class="station-list" data-bind="css: stationListStyles()">
           <ul class="station-list-ul" data-bind="foreach: searchResults">
             <li data-bind="text: name, css: { 'station-list-element-active': $parent.activeItem() == $data }, click: $parent.makeActive"></li>
           </ul>
@@ -55,8 +55,8 @@
       </div>
 
       <div class="info-container" data-bind="visible: displayMode() === 'MOBILE'">
-        <div class="info" data-bind="css: { 'info-popout': isInfoWindowOpen() }">
-          <div class="info-header" data-bind="click: onClickInfoHeader">
+        <div class="info" data-bind="css: infoStyles()">
+          <div class="info-header" data-bind="click: onInfoHeaderClick">
             <div class="info-thumbnail">
               <img data-bind="attr: { src: infoContent.thumbnail, alt: infoContent.name }">
             </div>
@@ -244,8 +244,8 @@
         <!-- info -->
 
         <!-- This is the pull up cue for minimized info in mobile view -->
-        <span class="glyphicon glyphicon-chevron-up pull-up-cue"></span>
-        
+        <span class="glyphicon glyphicon-chevron-up pull-up-cue" data-bind="visible: infoStyles() === 'info-mini'"></span>
+
       </div>
       <!-- info container -->
 

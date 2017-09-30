@@ -107,6 +107,9 @@ h3 {
 }
 
 .searchbox-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   box-sizing: border-box;
   font-size: 2rem;
   top: 50%;
@@ -118,16 +121,8 @@ h3 {
   background-color: transparent;
 }
 
-.searchbox-btn-back {
-  visibility: hidden;
-}
-
-.searchbox-btn-back > span {
-  opacity: 0; /* Hide by default */
-}
-
 /* TODO */
-.searchbox-btn-back > span,
+.searchbox-btn-toggle > span,
 .searchbox-btn-cancel > span {
   transition: opacity 0.5s ease-in, transform 0.5s ease-out;
 }
@@ -138,7 +133,7 @@ h3 {
   outline: none;
 }
 
-.searchbox-btn-back {
+.searchbox-btn-toggle {
   left: 1rem;
 }
 
@@ -286,7 +281,7 @@ h3 {
   word-wrap: break-word;
 }
 
-.info-popout .info-name {
+.info-infowindow .info-name {
   width: 100%;
 }
 
@@ -711,50 +706,36 @@ h3 {
 /* app-state Styles */
 
 /* Buttons */
-.app-state-search .searchbox-btn-back,
-.app-state-search-in-progress .searchbox-btn-back,
-.app-state-info .searchbox-btn-back {
-  visibility: visible;
-}
 
-.app-state-search .searchbox-btn-back > span,
-.app-state-search-in-progress .searchbox-btn-back > span {
-  transform: rotate(90deg);
-  opacity: 1;
-}
-
-.app-state-info .searchbox-btn-back > span {
-  transform: rotate(-90deg);
-  opacity: 1;
+.toggle-btn-close-list > span {
+  transform: rotate(180deg);
 }
 
 /* Station info */
-.app-state-item-selected .info {
+.info.info-mini {
   transform: translateY(calc(100vh - 128px)); /* Show only header */
 }
 
+.info.info-full {
+  transform: none;
+  border: none;
+}
+
+/* Pull-up cue for minimized info */
 .pull-up-cue {
   position: fixed;
   z-index: 9999;
-  top: calc(100vh - 100px);/* Place over header border */
+  top: calc(100vh - 100px); /* Place over header border */
   width: 100%;
   text-align: center;
   visibility: hidden;
   font-size: 4rem;
-  color: #607D8B;
-}
-
-.app-state-item-selected .pull-up-cue {
-  visibility: visible;
+  color: #607d8b;
   animation: pulse 4s ease-in-out infinite;
 }
 
-.app-state-info .info {
-  transform: none;
-}
-
 /* When integrated into infowindow */
-.info.info-popout {
+.info.info-infowindow {
   position: inherit;
   width: 350px;
   height: 400px;
@@ -763,8 +744,7 @@ h3 {
 }
 
 /* Search results */
-.app-state-search .station-list,
-.app-state-search-in-progress .station-list {
+.station-list.station-list-visible {
   transform: none;
   opacity: 1;
 }
@@ -780,14 +760,12 @@ h3 {
     width: 350px;
   }
 
-  .app-state-info .searchbox-btn-back {
-    visibility: hidden;
+  .searchbox-btn-toggle > span {
+    transform: rotate(-90deg);
   }
 
-  .app-state-search .searchbox-btn-back > span,
-  .app-state-search-in-progress .searchbox-btn-back > span {
-    opacity: 1;
-    transform: none;
+  .toggle-btn-close-list > span {
+    transform: rotate(90deg);
   }
 }
 
@@ -815,7 +793,7 @@ h3 {
     padding-top: 0;
   }
 
-  .searchbox-btn-back {
+  .searchbox-btn-toggle {
     visibility: hidden !important;
   }
 }

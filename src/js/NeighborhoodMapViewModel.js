@@ -3,7 +3,6 @@ import moment from 'moment';
 import './ko.dateBindings';
 import StationInfo from './StationInfo';
 import StatusCodes from './StatusCodes';
-import States from './States';
 import Console from './Console';
 import placeholderImg from '../icons/ic_train_thumbnail.svg';
 
@@ -28,10 +27,11 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   this.windowWidth = ko.observable();
   // Expect mobile device by default
   this.displayMode = ko.observable(MOBILE);
+  // Manage the different views for info and list
+  this.infoStylesMobile = ko.observable('info-hidden');
+  this.stationListStyles = ko.observable('station-list-hidden');
   // This is the currently selected station
   this.activeItem = ko.observable(null);
-  // Holds application state, mainly used for styles
-  this.state = ko.observable(States.Idle);
   // Focus search field by default
   this.searchFocus = ko.observable(true);
   this.searchTerm = ko.observable('');
@@ -95,17 +95,9 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   };
   this.purgeData();
 
-  // Info styles used for mobile view
-  this.infoStyles = {
-    // Show only title
-    'info-glance': false,
-    // Show fullscreen
-    'info-in': false,
-  };
-
-  // Add styles for route planner "go" button
+  // Add styles to route planner "go" button
   this.routePlannerGoButtonStyle = ko.pureComputed(() => {
-    if (this.infoContent.status.route() === StatusCodes.OK) {
+    if (this.infoContent.status.route() === StatusCodes.OK && this.infoContent.trips.length > 0) {
       return 'route-go-btn-success';
     } else if (this.infoContent.status.route() === StatusCodes.FETCHING) {
       return 'route-go-btn-fetching';
@@ -115,7 +107,15 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     return '';
   });
 
-  // Open GoogleMaps InfoWindow and attach our DOM node
+  this.toggleButtonStyles = ko.pureComputed(() => {
+    if (this.stationListStyles() === 'station-list-visible') {
+      return 'toggle-btn-close-list';
+    } else if (this.infoStylesMobile() === 'info-full') {
+      return 'toggle-btn-close-info';
+    }
+  });
+
+  // Open Google Maps InfoWindow and attach our DOM node
   this.openInfoWindow = () => {
     Console('[NeighborHoodViewModel] Opening info window');
     if (this.infowindow && this.activeItem()) {
@@ -129,7 +129,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     }
   };
 
-  // Close GoogleMaps InfoWindow and move our DOM node to its container
+  // Close Google Maps InfoWindow and move our DOM node to its container
   this.closeInfoWindow = () => {
     Console('[NeighborHoodViewModel] Closing info window');
     $('.info').appendTo($('.info-container'));
@@ -137,8 +137,6 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
       this.infowindow.close();
     }
   };
-
-  this.isInfoWindowOpen = ko.pureComputed(() => this.displayMode() === INFO_WINDOW && this.activeItem());
 
   // When display mode changes move our content respectfully
   this.displayMode.subscribe((newValue) => {
@@ -150,6 +148,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
       this.openInfoWindow();
     } else {
       this.closeInfoWindow();
+      this.infoStylesMobile('info-mini');
     }
   });
 
@@ -167,54 +166,58 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     this.windowWidth($(window).width());
   });
 
-  //-----------------
-  // State handling
-  //-----------------
+  //--------------------
+  // Knockout Callbacks
+  //--------------------
 
-  // Back ◀ button inside search field
+  // TODO: Integrate into infoStylesMobile (wrap with computable?)
+  this.infoStyles = ko.pureComputed(() => (
+    (this.displayMode() === INFO_WINDOW && this.activeItem())
+      ? 'info-infowindow'
+      : this.infoStylesMobile()
+  ));
+
+  // Toggle button inside search field
   // Behaviour depends on current state, made obvious through different css styles
-  this.onBack = () => {
-    const { state } = this;
-    if (state() === States.Search || state() === States.SearchInProgress) {
+  this.onToggle = () => {
+    if (this.infoStylesMobile() === 'info-full') {
+      this.infoStylesMobile('info-mini');
+    } else if (this.stationListStyles() === 'station-list-hidden') {
+      this.infoStylesMobile('info-hidden');
+      this.stationListStyles('station-list-visible');
+    } else if (this.stationListStyles() === 'station-list-visible') {
+      this.stationListStyles('station-list-hidden');
       if (this.activeItem()) {
-        state(States.ItemSelected);
-      } else {
-        state(States.Idle);
+        this.infoStylesMobile('info-mini');
       }
-    } else if (state() === States.Info) {
-      state(States.ItemSelected);
     }
   };
 
   // Cancel ⓧ button inside search field
   // Empty and focus search
   this.onCancel = () => {
-    const { state } = this;
-    if (state() === States.Info) {
-      state(States.Idle);
-    }
+    // TODO: Maybe go to idle state (stationlist ▶ shown)
     this.searchTerm('');
     this.searchFocus(true);
   };
 
   // Maximize the station info when header is clicked
-  this.onClickInfoHeader = () => {
-    const { state } = this;
-    if (state() === States.ItemSelected) {
-      state(States.Info);
+  this.onInfoHeaderClick = () => {
+    if (this.infoStylesMobile() === 'info-mini') {
+      this.infoStylesMobile('info-full');
     }
   };
 
   // Show station list when user begins typing
   this.searchTerm.subscribe((newValue) => {
-    const { state } = this;
-    if (
-      newValue.length === 0 &&
-      (state() === States.Search || state() === States.SearchInProgress)
-    ) {
-      state(States.Idle);
+    if (newValue.length === 0) {
+      this.stationListStyles('station-list-hidden');
+      if (this.activeItem()) {
+        this.infoStylesMobile('info-mini');
+      }
     } else {
-      state(States.SearchInProgress);
+      this.infoStylesMobile('info-hidden');
+      this.stationListStyles('station-list-visible');
     }
   });
 
@@ -282,7 +285,8 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     }
     // Set the 'From' field to this station
     this.infoContent.routePlannerOrigin(station.name);
-    this.state(States.ItemSelected);
+    this.stationListStyles('station-list-hidden');
+    this.infoStylesMobile('info-mini');
     this.stationInfo.fetch(station);
     this.scrollToElement(station);
   };
@@ -402,7 +406,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   // Add some styles to InfoWindow elements
   // WARNING: Relying on inner working of Maps API. May stop working with unexpectedly.
   // Adapted from http://en.marnoto.com/2014/09/5-formas-de-personalizar-infowindow.html
-  this.setInfoStyles = () => {
+  this.setinfoStylesMobile = () => {
     // Reference to the DIV which receives the contents of the info window
     const iwOuter = $('.gm-style-iw');
     $(iwOuter)
@@ -454,7 +458,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
       // The anchor element facilitates moving station information to the InfoWindow.
       this.infowindow = new google.maps.InfoWindow({ content: '<div id="iw-anchor"></div>' });
       // Change styles every time InfoWindow gets attached to the DOM
-      google.maps.event.addListener(this.infowindow, 'domready', this.setInfoStyles);
+      google.maps.event.addListener(this.infowindow, 'domready', this.setinfoStylesMobile);
       // Make sure we have the correct displayMode for our screen
       this.windowWidth($(window).width());
       this.appStatus(StatusCodes.OK);
