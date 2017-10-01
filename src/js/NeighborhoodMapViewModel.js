@@ -220,7 +220,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
 
   this.clearActive = () => {
     this.purgeData();
-    this.resetTab();
+    this.infoTab('departures');
     this.activeItem(null);
   };
 
