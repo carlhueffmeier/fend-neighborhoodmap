@@ -37,7 +37,8 @@ class Station {
 
   toggleHighlight(condition) {
     if (condition === true) {
-      // map.setCenter(this.marker.getPosition());
+      const map = this.marker.getMap();
+      map.panTo(this.marker.getPosition());
       this.marker.setIcon(highlightedIcon());
       this.marker.setZIndex(1000);
     } else {

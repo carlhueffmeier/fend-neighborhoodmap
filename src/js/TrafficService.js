@@ -92,6 +92,7 @@ const TrafficService = {
     ajax(url, handleDepartureResponse(callback, errorHandler), errorHandler);
   },
   getRoute(request, callback, errorHandler) {
+    Console('[TrafficService] Starting route request: ', request);
     const url = getUrl('trip', request);
     ajax(url, handleRouteResponse(callback, errorHandler), errorHandler);
   },

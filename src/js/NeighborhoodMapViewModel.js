@@ -1,18 +1,10 @@
 import ko from 'knockout';
 import moment from 'moment';
-import './ko.dateBindings';
+import './ko.customBindings';
 import StationInfo from './StationInfo';
 import StatusCodes from './StatusCodes';
 import Console from './Console';
 import placeholderImg from '../icons/ic_train_thumbnail.svg';
-
-// Describes the current display mode
-// INFO_WINDOW -> Station info is displayed in GoogleMaps InfoWindow on larger devices
-const INFO_WINDOW = 'INFO_WINDOW';
-// MOBILE -> Station info is displayed full width optimized for smaller devices
-const MOBILE = 'MOBILE';
-// The minimum viewport width for InfoWindow
-const INFO_WINDOW_BREAKPOINT = 768; // px
 
 // Our view model expects a promise that resolves with { map, stations }
 // when GoogleMaps finishes loading
@@ -22,13 +14,10 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   this.appStatusMessage = ko.observable('');
   // map, infowindow, stations are set when mapLoading resolves
   this.map = null;
-  this.infowindow = null;
   this.stations = ko.observable([]);
   this.windowWidth = ko.observable();
-  // Expect mobile device by default
-  this.displayMode = ko.observable(MOBILE);
   // Manage the different views for info and list
-  this.infoStylesMobile = ko.observable('info-hidden');
+  this.infoStyles = ko.observable('info-hidden');
   this.stationListStyles = ko.observable('station-list-hidden');
   // This is the currently selected station
   this.activeItem = ko.observable(null);
@@ -58,21 +47,6 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     },
   };
 
-  // Verify data in order to set styles accordingly
-  this.infoContent.routePlannerTimeValid = ko.pureComputed(() =>
-    moment(this.infoContent.routePlannerTime(), 'HH:mm').isValid());
-
-  this.infoContent.routePlannerOriginValid = ko.pureComputed(() =>
-    this.getStationId(this.infoContent.routePlannerOrigin()));
-
-  this.infoContent.routePlannerDestinationValid = ko.pureComputed(() =>
-    this.getStationId(this.infoContent.routePlannerDestination()));
-
-  this.infoContent.routePlannerAllValid = ko.pureComputed(() =>
-    this.infoContent.routePlannerTimeValid() &&
-      this.infoContent.routePlannerOriginValid() &&
-      this.infoContent.routePlannerDestinationValid());
-
   // Set station information to default values
   this.purgeData = () => {
     this.infoContent.thumbnail(placeholderImg);
@@ -81,7 +55,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     this.infoContent.departures([]);
     this.infoContent.rating('');
     this.infoContent.reviews([]);
-    this.infoContent.routePlannerTime(moment());
+    this.infoContent.routePlannerTime(new Date());
     this.infoContent.routePlannerTimeMode('departure');
     this.infoContent.routePlannerOrigin('');
     this.infoContent.routePlannerDestination('');
@@ -94,6 +68,21 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     this.infoContent.status.places_message('');
   };
   this.purgeData();
+
+  // Input validation for route form
+  this.infoContent.routePlannerOriginId = ko.pureComputed(() =>
+    this.getStationId(this.infoContent.routePlannerOrigin()));
+
+  this.infoContent.routePlannerDestinationId = ko.pureComputed(() =>
+    this.getStationId(this.infoContent.routePlannerDestination()));
+
+  // Input validation for route form
+  this.infoContent.routePlannerOriginValid = ko.pureComputed(() => this.infoContent.routePlannerOriginId() !== null);
+
+  this.infoContent.routePlannerDestinationValid = ko.pureComputed(() => this.infoContent.routePlannerDestinationId() !== null);
+
+  this.infoContent.routePlannerAllValid = ko.pureComputed(() =>
+    this.infoContent.routePlannerOriginValid() && this.infoContent.routePlannerDestinationValid());
 
   // Add styles to route planner "go" button
   this.routePlannerGoButtonStyle = ko.pureComputed(() => {
@@ -108,115 +97,58 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   });
 
   this.toggleButtonStyles = ko.pureComputed(() => {
-    if (this.stationListStyles() === 'station-list-visible') {
-      return 'toggle-btn-close-list';
-    } else if (this.infoStylesMobile() === 'info-full') {
-      return 'toggle-btn-close-info';
-    }
-  });
-
-  // Open Google Maps InfoWindow and attach our DOM node
-  this.openInfoWindow = () => {
-    Console('[NeighborHoodViewModel] Opening info window');
-    if (this.infowindow && this.activeItem()) {
-      this.infowindow.open(this.map, this.activeItem().marker);
-    }
-    const iwAnchor = $('#iw-anchor');
-    if ($(iwAnchor).length > 0) {
-      $('.info').insertAfter($(iwAnchor));
-    } else {
-      Console('[NeighborHoodViewModel] iwAnchor does not exist.');
-    }
-  };
-
-  // Close Google Maps InfoWindow and move our DOM node to its container
-  this.closeInfoWindow = () => {
-    Console('[NeighborHoodViewModel] Closing info window');
-    $('.info').appendTo($('.info-container'));
-    if (this.infowindow) {
-      this.infowindow.close();
-    }
-  };
-
-  // When display mode changes move our content respectfully
-  this.displayMode.subscribe((newValue) => {
-    Console('[NeighborHoodViewModel] Switching display mode to ', newValue);
+    const styles = [];
+    // User can't navigate to info when there is no station selected
+    // Hide the button on medium or large devices
     if (this.activeItem() === null) {
-      return; // Nothing to do
+      styles.push('toggle-btn-hidden-md-up');
     }
-    if (newValue === INFO_WINDOW) {
-      this.openInfoWindow();
-    } else {
-      this.closeInfoWindow();
-      this.infoStylesMobile('info-mini');
+    // Rotate the button for a more intuitive feel
+    if (this.stationListStyles() === 'station-list-visible') {
+      styles.push('toggle-btn-close-list');
+    } else if (this.infoStyles() === 'info-full') {
+      styles.push('toggle-btn-close-info');
     }
+    return styles.join(' ');
   });
-
-  // Set our display mode according to width of viewport
-  this.windowWidth.subscribe((newWidth) => {
-    if (newWidth >= INFO_WINDOW_BREAKPOINT) {
-      this.displayMode(INFO_WINDOW);
-    } else {
-      this.displayMode(MOBILE);
-    }
-  });
-
-  // Make window width available as observable
-  $(window).on('resize', () => {
-    this.windowWidth($(window).width());
-  });
-
-  //--------------------
-  // Knockout Callbacks
-  //--------------------
-
-  // TODO: Integrate into infoStylesMobile (wrap with computable?)
-  this.infoStyles = ko.pureComputed(() => (
-    (this.displayMode() === INFO_WINDOW && this.activeItem())
-      ? 'info-infowindow'
-      : this.infoStylesMobile()
-  ));
 
   // Toggle button inside search field
   // Behaviour depends on current state, made obvious through different css styles
   this.onToggle = () => {
-    if (this.infoStylesMobile() === 'info-full') {
-      this.infoStylesMobile('info-mini');
+    if (this.infoStyles() === 'info-full') {
+      this.infoStyles('info-mini');
     } else if (this.stationListStyles() === 'station-list-hidden') {
-      this.infoStylesMobile('info-hidden');
+      this.infoStyles('info-hidden');
       this.stationListStyles('station-list-visible');
     } else if (this.stationListStyles() === 'station-list-visible') {
       this.stationListStyles('station-list-hidden');
       if (this.activeItem()) {
-        this.infoStylesMobile('info-mini');
+        this.infoStyles('info-mini');
       }
     }
   };
 
   // Cancel ⓧ button inside search field
-  // Empty and focus search
   this.onCancel = () => {
-    // TODO: Maybe go to idle state (stationlist ▶ shown)
+    // Show station list
+    this.infoStyles('info-hidden');
+    this.stationListStyles('station-list-visible');
+    // Empty and focus search
     this.searchTerm('');
     this.searchFocus(true);
   };
 
   // Maximize the station info when header is clicked
   this.onInfoHeaderClick = () => {
-    if (this.infoStylesMobile() === 'info-mini') {
-      this.infoStylesMobile('info-full');
+    if (this.infoStyles() === 'info-mini') {
+      this.infoStyles('info-full');
     }
   };
 
   // Show station list when user begins typing
   this.searchTerm.subscribe((newValue) => {
-    if (newValue.length === 0) {
-      this.stationListStyles('station-list-hidden');
-      if (this.activeItem()) {
-        this.infoStylesMobile('info-mini');
-      }
-    } else {
-      this.infoStylesMobile('info-hidden');
+    if (newValue.length > 0) {
+      this.infoStyles('info-hidden');
       this.stationListStyles('station-list-visible');
     }
   });
@@ -272,7 +204,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   // TODO: I could probably make a custom binding for this,
   //       although it doesn't seem justified in this case.
   this.resetTab = () => {
-    $('a[href="#departure-board"]').tab('show'); // cosmetic DOM manipulation
+    $('a[href="#departure-board"]').tab('show');
   };
 
   // Select a new station and display its info to the user
@@ -280,13 +212,10 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     this.purgeData();
     this.resetTab();
     this.activeItem(station);
-    if (this.displayMode() === INFO_WINDOW) {
-      this.openInfoWindow();
-    }
     // Set the 'From' field to this station
     this.infoContent.routePlannerOrigin(station.name);
     this.stationListStyles('station-list-hidden');
-    this.infoStylesMobile('info-mini');
+    this.infoStyles('info-mini');
     this.stationInfo.fetch(station);
     this.scrollToElement(station);
   };
@@ -295,9 +224,6 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     this.purgeData();
     this.resetTab();
     this.activeItem(null);
-    if (this.displayMode() === INFO_WINDOW) {
-      this.closeInfoWindow();
-    }
   };
 
   // Remove marker highlight from currently selected item on change
@@ -327,13 +253,11 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
 
   // Kick off fetching of route planner results
   this.fetchRoute = () => {
-    const origin = this.infoContent.routePlannerOrigin();
-    const destination = this.infoContent.routePlannerDestination();
     const time = this.infoContent.routePlannerTime();
     const timeMode = this.infoContent.routePlannerTimeMode() === 'departure' ? 0 : 1;
     this.stationInfo.fetchRoute({
-      originId: this.getStationId(origin),
-      destId: this.getStationId(destination),
+      originId: this.infoContent.routePlannerOriginId(),
+      destId: this.infoContent.routePlannerDestinationId(),
       time: moment(time).format('HH:mm'),
       searchForArrival: timeMode,
     });
@@ -403,47 +327,6 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     return result ? result.hafasId : null;
   };
 
-  // Add some styles to InfoWindow elements
-  // WARNING: Relying on inner working of Maps API. May stop working with unexpectedly.
-  // Adapted from http://en.marnoto.com/2014/09/5-formas-de-personalizar-infowindow.html
-  this.setinfoStylesMobile = () => {
-    // Reference to the DIV which receives the contents of the info window
-    const iwOuter = $('.gm-style-iw');
-    $(iwOuter)
-      .parent()
-      .addClass('iw-container');
-    // The DIV we want to change is above the .gm-style-iw DIV
-    const iwBackground = iwOuter.prev();
-    // Remove the background shadow DIV
-    iwBackground.children(':nth-child(2)').css({ display: 'none' });
-    // Remove the white background DIV
-    iwBackground.children(':nth-child(4)').css({ display: 'none' });
-    // Changes the desired color for the tail outline
-    // The outline of the tail is composed of two descendants of div which contains the tail.
-    // Set left / right borders on respective parts of the tail
-    iwBackground
-      .children(':nth-child(3)')
-      .find('div')
-      .children()
-      .eq(0)
-      .addClass('iw-tail-left');
-    iwBackground
-      .children(':nth-child(3)')
-      .find('div')
-      .children()
-      .eq(1)
-      .addClass('iw-tail-right');
-    // Replace img Google uses with glyphicon
-    const iwCloseBtn = iwOuter.next();
-    iwCloseBtn.addClass('iw-close-btn');
-    iwCloseBtn.html('<span class="iw-close-glyphicon glyphicon glyphicon-remove"></span>');
-    // The API automatically applies 0.7 opacity to the button after the mouseout event.
-    // This function reverses this event to the desired value.
-    iwCloseBtn.mouseout(function mouseOutHandler() {
-      $(this).css({ opacity: '1' });
-    });
-  };
-
   // This promise gets resolved once our map is ready
   mapLoading
     .then(({ map, stations }) => {
@@ -453,12 +336,6 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
       });
       this.stations(stations);
       this.map = map;
-      // The station information is dynamically attached to our InfoWindow on large screens.
-      // Setting no content results in DOM structure not getting built as expected.
-      // The anchor element facilitates moving station information to the InfoWindow.
-      this.infowindow = new google.maps.InfoWindow({ content: '<div id="iw-anchor"></div>' });
-      // Change styles every time InfoWindow gets attached to the DOM
-      google.maps.event.addListener(this.infowindow, 'domready', this.setinfoStylesMobile);
       // Make sure we have the correct displayMode for our screen
       this.windowWidth($(window).width());
       this.appStatus(StatusCodes.OK);

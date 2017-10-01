@@ -1,17 +1,19 @@
 import Console from './Console';
 
-// TODO: What is a good pattern to share properties between all class instances?
+// TODO: What is the best practice on sharing properties between all class instances?
 let PlacesService = null;
 
 // TODO: Interface might be cleaner when returning a promise instead
 class GooglePlacesRequest {
+  // Usage
+  // -----
   // const places_request = new GooglePlacesRequest(request, onSuccess, onError);
   // request: valid parameters include name, radius, type, query, location
   // (see Google documentation for details)
   // onSuccess: callback is given result as parameter
   // onError: error handler is given status as parameter
   constructor(request, onSuccess, onError) {
-    // Google needs a node to show attributions, no need to pass map over
+    // Google needs a node to show attributions, no need to make map object available here
     if (!PlacesService) {
       PlacesService = new google.maps.places.PlacesService(document.getElementById('attribution'));
     }

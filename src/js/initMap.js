@@ -3,7 +3,7 @@ import MapStyles from './MapStyles';
 // Returns a promise that is resolved when map is loaded
 // resolve: gets map object
 // reject: gets error string
-// TODO: Does onerror return a string?
+
 const initMap = () =>
   new Promise((resolve, reject) => {
     // Creating callback for Google Maps in the global namespace
@@ -31,6 +31,7 @@ const initMap = () =>
       resolve(map);
     };
     // This function is called by the 'onerror' handler of the script tag
+    // TODO: Does onerror pass a value?
     window.handleMapError = (err) => {
       reject(err);
     };
