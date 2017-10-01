@@ -206,7 +206,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   // TODO: I could probably make a custom binding for this,
   //       although it doesn't seem justified in this case.
   this.resetTab = () => {
-    $('a[href="#departure-board"]').tab('show');
+    $('a[href="#departures"]').tab('show');
   };
 
   // Select a new station and display its info to the user
