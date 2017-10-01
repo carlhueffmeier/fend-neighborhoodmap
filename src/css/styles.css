@@ -736,6 +736,7 @@ h3 {
     opacity: 1;
     position: static;
     flex: 1;
+    height: 100%;
     width: 350px;
   }
 
