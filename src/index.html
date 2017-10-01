@@ -161,6 +161,7 @@
                   <!-- The route planner form -->
                   <div class="col-xs-6 route-form-col">
                     <form class="form-horizontal route-form"
+                      data-bind="submit: fetchRoute"
                       role="form">
 
                       <div>
@@ -234,10 +235,9 @@
                       <!-- "Go" Button -->
                       <div class="form-group text-center">
                         <div class="col-xs-12">
-                          <button type="button"
+                          <button type="submit"
                             class="btn btn-dark btn-lg btn-block"
-                            data-bind="click: fetchRoute,
-                              enable: infoContent.routePlannerAllValid(),
+                            data-bind="enable: infoContent.routePlannerAllValid(),
                               css: routePlannerGoButtonStyle">
                               <div
                                 class="route-go-btn-error-message"
