@@ -5,7 +5,7 @@ import 'bootstrap-timepicker';
 // Adds timeValue binding for use with bootstrap-timepicker
 // See http://jdewit.github.io/bootstrap-timepicker/index.html
 ko.bindingHandlers.timeValue = {
-  init(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
+  init(element, valueAccessor) {
     const options = {
       showMeridian: false,
       maxHours: 24,
@@ -28,7 +28,7 @@ ko.bindingHandlers.timeValue = {
     });
   },
   // Update timepicker when observable changes
-  update(element, valueAccessor, allBindings, viewModel, bindingContext) {
+  update(element, valueAccessor) {
     const date = ko.unwrap(valueAccessor());
 
     if (date) {
@@ -37,6 +37,30 @@ ko.bindingHandlers.timeValue = {
       // Update timepicker element
       $(element).timepicker('setTime', time);
     }
+  },
+};
+
+// Adds binding for tabbed navigation for bootstrap
+// Note that this is not universal, as I didn't make the effort to support data-target as well as href
+ko.bindingHandlers.activeTab = {
+  // I am ignoring the initial value of the observable, because I don't need that functionality
+  init(element, valueAccessor) {
+    const tabs = $(element).children('li');
+    tabs.on('show.bs.tab', (e) => {
+      const value = valueAccessor();
+      // Retrieve the target tab name
+      const newTab = $(e.target)
+        .attr('href')
+        .replace(/^#/, ''); // Strip leading #
+      value(newTab);
+    });
+  },
+  // Change tab when observable changes
+  update(element, valueAccessor) {
+    // Get id from observable
+    const newTabId = ko.unwrap(valueAccessor());
+    // Select tab with the right id and display it
+    $(`a[href="#${newTabId}"]`).tab('show');
   },
 };
 

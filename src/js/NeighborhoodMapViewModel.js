@@ -19,6 +19,8 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   // Manage the different views for info and list
   this.infoStyles = ko.observable('info-hidden');
   this.stationListStyles = ko.observable('station-list-hidden');
+  // The tab currently displayed
+  this.infoTab = ko.observable();
   // This is the currently selected station
   this.activeItem = ko.observable(null);
   // Focus search field by default
@@ -202,17 +204,11 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     });
   });
 
-  // Switch to the first tab of my station information
-  // TODO: I could probably make a custom binding for this,
-  //       although it doesn't seem justified in this case.
-  this.resetTab = () => {
-    $('a[href="#departures"]').tab('show');
-  };
-
   // Select a new station and display its info to the user
   this.makeActive = (station) => {
     this.purgeData();
-    this.resetTab();
+    // Return to the first tab
+    this.infoTab('departures');
     this.activeItem(station);
     // Set the 'From' field to this station
     this.infoContent.routePlannerOrigin(station.name);
