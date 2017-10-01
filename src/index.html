@@ -3,9 +3,11 @@
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
   <title>Frankfurt Subway</title>
-  <link href="https://fonts.googleapis.com/css?family=Lato:300|Roboto:300" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css?family=Lato:300|Roboto:300"
+    rel="stylesheet">
 </head>
 
 <body>
@@ -20,12 +22,17 @@
       <!-- Necessary for Google Places -->
     </div>
 
-    <div class="fullscreen-status" data-bind="visible: appStatus() === 'ERROR'">
+    <!-- Fullscreen notification for critical errors -->
+    <div class="fullscreen-status"
+      data-bind="visible: appStatus() === 'ERROR'">
       <span class="glyphicon-big glyphicon glyphicon-warning-sign"></span>
-      <div class="fullscreen-status-message" data-bind="text: appStatusMessage()"></div>
+      <div class="fullscreen-status-message"
+        data-bind="text: appStatusMessage()"></div>
     </div>
 
-    <div class="fullscreen-status" data-bind="visible: appStatus() === 'FETCHING'">
+    <!-- Fullscreen loading screen -->
+    <div class="fullscreen-status"
+      data-bind="visible: appStatus() === 'FETCHING'">
       <div class="fullscreen-status-message">Loading Map</div>
       <div class="spinner fullscreen-spinner">
         <div class="bounce1"></div>
@@ -34,65 +41,98 @@
       </div>
     </div>
 
-    <div class="main" data-bind="visible: appStatus() === 'OK'">
+    <div class="main"
+      data-bind="visible: appStatus() === 'OK'">
 
       <div class="content-container">
         <div class="searchbox-container">
           <div class="searchbox">
-            <button class="searchbox-btn searchbox-btn-toggle" data-bind="click: onToggle, css: toggleButtonStyles()">
+            <button class="searchbox-btn searchbox-btn-toggle"
+              data-bind="click: onToggle, css: toggleButtonStyles()">
                 <span class="glyphicon glyphicon-chevron-down"></span>
               </button>
-            <input class="input-lg searchbox-input" data-bind="textInput: searchTerm, hasFocus: searchFocus" />
-            <button class="searchbox-btn searchbox-btn-cancel" data-bind="click: onCancel, visible: searchTerm().length > 0">
+            <input class="input-lg searchbox-input"
+              data-bind="textInput: searchTerm, hasFocus: searchFocus" />
+            <button class="searchbox-btn searchbox-btn-cancel"
+              data-bind="click: onCancel, visible: searchTerm().length > 0">
                 <span class="glyphicon glyphicon-remove"></span>
               </button>
           </div>
         </div>
-        <div class="results-container" data-bind="css: { 'results-container-show-info': !(infoStyles() === 'info-hidden') }">
-          <div class="station-list" data-bind="css: stationListStyles()">
-            <ul class="station-list-ul" data-bind="foreach: searchResults">
-              <li data-bind="text: name, css: { 'station-list-element-active': $parent.activeItem() === $data }, click: $parent.makeActive"></li>
+        <!-- Container will shift to show either station list or details -->
+        <div class="results-container"
+          data-bind="css: { 'results-container-show-info': !(infoStyles() === 'info-hidden') }">
+          <div class="station-list"
+            data-bind="css: stationListStyles()">
+            <ul class="station-list-ul"
+              data-bind="foreach: searchResults">
+              <li data-bind="text: name,
+                css: { 'station-list-element-active': $parent.activeItem() === $data },
+                click: $parent.makeActive"></li>
             </ul>
           </div>
-          <div class="info" data-bind="css: infoStyles()">
-            <div class="info-header" data-bind="click: onInfoHeaderClick">
+          <div class="info"
+            data-bind="css: infoStyles()">
+            <div class="info-header"
+              data-bind="click: onInfoHeaderClick">
+              <!-- Pull up cue for minimized info in mobile view -->
+              <span class="glyphicon glyphicon-menu-up pull-up-cue"
+                data-bind="css: { 'visible-xs': infoStyles() === 'info-mini' }"></span>
               <div class="info-thumbnail">
                 <img data-bind="attr: { src: infoContent.thumbnail, alt: infoContent.name }">
               </div>
               <div class="info-title">
-                <h2 class="info-name" data-bind="text: infoContent.name"></h2>
-                <h3 class="info-district" data-bind="text: infoContent.district"></h3>
+                <h2 class="info-name"
+                  data-bind="text: infoContent.name"></h2>
+                <h3 class="info-district"
+                  data-bind="text: infoContent.district"></h3>
               </div>
             </div>
 
             <!-- Tabs -->
-            <ul class="info-nav nav nav-pills flex-column" role="tablist">
+            <ul class="info-nav nav nav-pills flex-column"
+              role="tablist">
               <li class="nav-item active">
-                <a class="nav-link text-center" data-toggle="tab" href="#departure-board" role="tab">Departures</a>
+                <a class="nav-link text-center"
+                  data-toggle="tab"
+                  href="#departures"
+                  role="tab">Departures</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link text-center" data-toggle="tab" href="#route" role="tab">Route</a>
+                <a class="nav-link text-center"
+                  data-toggle="tab"
+                  href="#route"
+                  role="tab">Route</a>
               </li>
-              <li class="nav-item" data-bind="visible: infoContent.status.places()==='OK'">
-                <a class="nav-link text-center" data-toggle="tab" href="#opinion" role="tab">Opinions</a>
+              <li class="nav-item"
+                data-bind="visible: infoContent.status.places()==='OK'">
+                <a class="nav-link text-center"
+                  data-toggle="tab"
+                  href="#opinion"
+                  role="tab">Opinions</a>
               </li>
             </ul>
 
             <div class="tab-content info-content">
 
-              <!-- [Tab: Departure Board] shows a list of outgoing connections -->
-              <div class="tab-pane fade in active" id="departure-board" role="tabpanel">
+              <!-- [Tab: Departures] shows a list of outgoing connections -->
+              <div id="departures"
+                class="tab-pane fade in active"
+                role="tabpanel">
                 <div class="container-fluid container-departure">
-                  <div class="spinner" data-bind="visible: infoContent.status.departure()==='FETCHING'">
+                  <div class="spinner"
+                    data-bind="visible: infoContent.status.departure()==='FETCHING'">
                     <div class="bounce1"></div>
                     <div class="bounce2"></div>
                     <div class="bounce3"></div>
                   </div>
-                  <div id="departure-alert" class="status-alert alert alert-warning" data-bind="visible: infoContent.status.departure()==='ERROR'">
-                    <strong id="departure-alert-heading">Error</strong>
-                    <span id="departure-alert-message" data-bind="text: infoContent.status.departure_message"></span>
+                  <div class="status-alert alert alert-warning"
+                    data-bind="visible: infoContent.status.departure()==='ERROR'">
+                    <strong>Error</strong>
+                    <span data-bind="text: infoContent.status.departure_message"></span>
                   </div>
-                  <table class="info-departure-board" data-bind="visible: infoContent.status.departure()==='OK'">
+                  <table class="info-departure-board"
+                    data-bind="visible: infoContent.status.departure()==='OK'">
                     <thead>
                       <tr>
                         <th>Line</th>
@@ -102,7 +142,8 @@
                     </thead>
                     <tbody data-bind="foreach: infoContent.departures">
                       <tr>
-                        <td class="info-departure-td-line" data-bind="html: $parent.createBadge(line)"></td>
+                        <td class="info-departure-td-line"
+                          data-bind="html: $parent.createBadge(line)"></td>
                         <td data-bind="text: direction"></td>
                         <td data-bind="text: departure"></td>
                       </tr>
@@ -112,11 +153,15 @@
               </div>
 
               <!-- [Tab: Route] allows the user to view the route FROM or TO this station -->
-              <div class="tab-pane fade tab-pane-route" id="route" role="tabpanel">
-                <div class="route-container" data-bind="css: { 'route-container-show-trips': infoContent.trips().length > 0 }">
+              <div id="route"
+                class="tab-pane fade tab-pane-route"
+                role="tabpanel">
+                <div class="route-container"
+                  data-bind="css: { 'route-container-show-trips': infoContent.trips().length > 0 }">
                   <!-- The route planner form -->
                   <div class="col-xs-6 route-form-col">
-                    <form class="form-horizontal route-form" role="form">
+                    <form class="form-horizontal route-form"
+                      role="form">
 
                       <div>
                         <!-- Time selection -->
@@ -124,36 +169,64 @@
                           <div class="col-xs-11">
                             <div class="input-group input-group bootstrap-timepicker timepicker">
                               <span class="input-group-btn">
-                                <label class="time-mode-radio-btn btn" data-bind="css: { active: infoContent.routePlannerTimeMode() === 'departure' }">
-                                  <input type="radio" name="time-mode" value="departure" data-bind="checked: infoContent.routePlannerTimeMode">Departure
+                                <label
+                                  class="time-mode-radio-btn btn"
+                                  data-bind="css: { active: infoContent.routePlannerTimeMode() === 'departure' }">
+                                  <input
+                                    type="radio"
+                                    name="time-mode"
+                                    value="departure"
+                                    data-bind="checked: infoContent.routePlannerTimeMode">Departure
                                 </label>
-                                <label class="time-mode-radio-btn btn" data-bind="css: { active: infoContent.routePlannerTimeMode() === 'arrival' }">
-                                  <input type="radio" name="time-mode" value="arrival" data-bind="checked: infoContent.routePlannerTimeMode">Arrival
+                                <label
+                                  class="time-mode-radio-btn btn"
+                                  data-bind="css: { active: infoContent.routePlannerTimeMode() === 'arrival' }">
+                                  <input
+                                    type="radio"
+                                    name="time-mode"
+                                    value="arrival"
+                                    data-bind="checked: infoContent.routePlannerTimeMode">Arrival
                                 </label>
                               </span>
-                              <input type="text" class="form-control" data-bind="timeValue: infoContent.routePlannerTime">
+                              <input type="text"
+                                class="form-control"
+                                data-bind="timeValue: infoContent.routePlannerTime">
                             </div>
                           </div>
                         </div>
 
                         <!-- Origin and destination inputs -->
-                        <div class="form-group form-group-centered" data-bind="css: infoContent.routePlannerOriginValid() ? 'has-success' : 'has-warning'">
-                          <label for="route-input-origin" class="col-xs-2 control-label">From</label>
+                        <div class="form-group form-group-centered"
+                          data-bind="css: infoContent.routePlannerOriginValid() ? 'has-success' : 'has-warning'">
+                          <label for="route-input-origin"
+                            class="col-xs-2 control-label">From</label>
                           <div class="col-xs-9">
-                            <input class="route-input-station form-control" type="text" id="route-input-origin" placeholder="Origin" autocorrect="off"
-                              spellcheck="false" data-bind="textInput: infoContent.routePlannerOrigin">
+                            <input class="route-input-station form-control"
+                              type="text"
+                              placeholder="Origin"
+                              autocorrect="off"
+                              spellcheck="false"
+                              data-bind="textInput: infoContent.routePlannerOrigin">
                           </div>
                           <div class="col-xs-1 route-switch-btn-col">
-                            <button type="button" class="btn-default route-switch-btn" data-bind="click: switchInputs">
+                            <button type="button"
+                              class="btn-default route-switch-btn"
+                              data-bind="click: switchInputs">
                               <span class="glyphicon glyphicon-random"></span>
                             </button>
                           </div>
                         </div>
-                        <div class="form-group form-group-centered" data-bind="css: infoContent.routePlannerDestinationValid() ? 'has-success' : 'has-warning'">
-                          <label for="route-input-destination" class="col-xs-2 control-label">To</label>
+                        <div class="form-group form-group-centered"
+                          data-bind="css: infoContent.routePlannerDestinationValid() ? 'has-success' : 'has-warning'">
+                          <label for="route-input-destination"
+                            class="col-xs-2 control-label">To</label>
                           <div class="col-xs-9">
-                            <input class="route-input-station form-control" type="text" id="route-input-destination" placeholder="Destination" autocorrect="off"
-                              spellcheck="false" data-bind="textInput: infoContent.routePlannerDestination">
+                            <input class="route-input-station form-control"
+                              type="text"
+                              placeholder="Destination"
+                              autocorrect="off"
+                              spellcheck="false"
+                              data-bind="textInput: infoContent.routePlannerDestination">
                           </div>
                         </div>
                       </div>
@@ -161,8 +234,15 @@
                       <!-- "Go" Button -->
                       <div class="form-group text-center">
                         <div class="col-xs-12">
-                          <button type="button" class="btn btn-dark btn-lg btn-block" id="route-go-btn" data-bind="click: fetchRoute, enable: infoContent.routePlannerAllValid(), css: routePlannerGoButtonStyle">
-                              <div class="route-go-btn-error-message" data-bind="visible: infoContent.status.route() === 'ERROR', text: infoContent.status.route_message"></div>
+                          <button type="button"
+                            class="btn btn-dark btn-lg btn-block"
+                            data-bind="click: fetchRoute,
+                              enable: infoContent.routePlannerAllValid(),
+                              css: routePlannerGoButtonStyle">
+                              <div
+                                class="route-go-btn-error-message"
+                                data-bind="visible: infoContent.status.route() === 'ERROR',
+                                  text: infoContent.status.route_message"></div>
                               <span class="glyphicon glyphicon-send"></span> Go
                             </button>
                         </div>
@@ -173,20 +253,28 @@
                   <!-- route planner trip results -->
                   <div class="col-xs-6 route-trips-col">
                     <div class="row route-trips-row">
-                      <button class="route-btn-return" data-bind="click: clearTripResults">
+                      <button class="route-btn-return"
+                        data-bind="click: clearTripResults">
                         <span class="glyphicon glyphicon-chevron-left"></span>
                       </button>
                       <div class="route-trips-content col-xs-11 col-xs-offset-1">
-                        <div class="panel-group" id="trip-results" data-bind="foreach: infoContent.trips">
+                        <div class="panel-group"
+                          data-bind="foreach: infoContent.trips">
                           <div class="trip-panel panel panel-default">
                             <div class="panel-heading">
-                              <a class="panel-link" role="button" data-toggle="collapse" data-bind="attr: { href: '#trip-' + $index() }">
-                                <h4 class="trip-title panel-title" data-bind="html: $root.constructTripTitle($data)"></h4>
+                              <a class="panel-link"
+                                role="button"
+                                data-toggle="collapse"
+                                data-bind="attr: { href: '#trip-' + $index() }">
+                                <h4 class="trip-title panel-title"
+                                  data-bind="html: $root.constructTripTitle($data)"></h4>
                               </a>
                             </div>
-                            <div class="panel-collapse collapse" data-bind="attr: { id: 'trip-' + $index() }">
+                            <div class="panel-collapse collapse"
+                              data-bind="attr: { id: 'trip-' + $index() }">
                               <div class="panel-body trip-body">
-                                <table class="table-condensed" data-bind="foreach: legs">
+                                <table class="table-condensed"
+                                  data-bind="foreach: legs">
                                   <tr>
                                     <th data-bind="html: $root.createBadge(type)"></th>
                                     <th data-bind="visible: direction">
@@ -216,17 +304,24 @@
               <!-- route tab-pane -->
 
               <!-- [Tab: Opinion] shows pictures, reviews and misc information -->
-              <div class="tab-pane fade" id="opinion" role="tabpanel">
+              <div id="opinion"
+                class="tab-pane fade"
+                role="tabpanel">
                 <div class="container-fluid container-reviews">
                   <div class="row">
                     <div class="col-xs-12">
                       <h4>
-                        Overall Rating: <strong><span data-bind="text: infoContent.rating"></span></strong>
+                        Overall Rating:
+                        <strong>
+                          <span data-bind="text: infoContent.rating"></span>
+                        </strong>
                       </h4>
-                      <div class="info-review" data-bind="foreach: infoContent.reviews">
+                      <div class="info-review"
+                        data-bind="foreach: infoContent.reviews">
                         <h3 class="info-review-heading">
                           <span data-bind="text: author"></span>
-                          <div class="info-star-rating" data-bind="html: $root.starRating(rating)"></div>
+                          <div class="info-star-rating"
+                            data-bind="html: $root.starRating(rating)"></div>
                         </h3>
                         <p data-bind="text: body"></p>
                       </div>
@@ -240,29 +335,30 @@
             </div>
             <!-- tab-content -->
           </div>
+          <!-- info -->
         </div>
+        <!-- results-container -->
       </div>
+      <!-- content-container -->
 
-      <!-- The container for Google Map -->
+      <!-- The container for Google Maps -->
       <div id="map"></div>
 
-      <!-- info -->
-
-      <!-- This is the pull up cue for minimized info in mobile view -->
-      <span class="glyphicon glyphicon-chevron-up pull-up-cue" data-bind="visible: infoStyles() === 'info-mini'"></span>
-
     </div>
-    <!-- content -->
+    <!-- main -->
 
   </div>
-  <!-- container-main -->
+  <!-- root -->
 
   <!-- Application script -->
   <script src="bundle.js"></script>
 
   <!-- Google Services -->
   <script src="https://maps.googleapis.com/maps/api/js?libraries=places&key=AIzaSyAkfjzdpVxQHLRZs_PLNiDrU4unNQ_8-A4&callback=initMap"
-    onerror="handleMapError()" async defer></script>
+
+    onerror="handleMapError()"
+    async
+    defer></script>
 </body>
 
 </html>

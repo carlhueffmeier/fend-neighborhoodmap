@@ -53,7 +53,7 @@ const prettyPrintDuration = (duration) => {
 // Wrapper for callback, making the results more usable
 const handleDepartureResponse = (callback, errorHandler) => (result) => {
   if (!result.Departure) {
-    const errorMessage = `Received strange results: ${result}`;
+    const errorMessage = `Could not fetch departure data: ${JSON.stringify(result)}`;
     Console(`[TrafficService] ${errorMessage}`);
     return errorHandler(errorMessage);
   }
@@ -66,7 +66,7 @@ const handleDepartureResponse = (callback, errorHandler) => (result) => {
 
 const handleRouteResponse = (callback, errorHandler) => (result) => {
   if (!result.Trip) {
-    const errorMessage = `Received strange results: ${result}`;
+    const errorMessage = `Could not fetch route data: ${JSON.stringify(result)}`;
     Console(`[TrafficService] ${errorMessage}`);
     return errorHandler(errorMessage);
   }

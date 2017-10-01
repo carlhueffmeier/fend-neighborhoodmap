@@ -179,10 +179,12 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
 
   // Search results are all stations which names match my search query.
   this.searchResults = ko.pureComputed(() =>
-    ko.utils.arrayFilter(
-      this.stations(),
-      station => station.name.toLowerCase().indexOf(this.searchTerm().toLowerCase()) !== -1,
-    ));
+    ko.utils
+      .arrayFilter(
+        this.stations(),
+        station => station.name.toLowerCase().indexOf(this.searchTerm().toLowerCase()) !== -1,
+      )
+      .sort((a, b) => a.name.localeCompare(b.name)));
 
   // Handle updates of searchResults
   this.searchResults.subscribe((newValue) => {
