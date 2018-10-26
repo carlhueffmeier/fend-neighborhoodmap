@@ -33,7 +33,7 @@ Still being amazed, this bunch of Spaghetti actually works. 🍝
 1. Clone the repository
 
 ```sh
-> git clone https://github.com/carlhueffmeier/raven-notes.git
+> git clone https://github.com/carlhueffmeier/frankfurt-subway-map.git
 ```
 
 2. Install dependencies
