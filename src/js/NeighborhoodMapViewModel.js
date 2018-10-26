@@ -73,22 +73,34 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
 
   // Input validation for route form
   this.infoContent.routePlannerOriginId = ko.pureComputed(() =>
-    this.getStationId(this.infoContent.routePlannerOrigin()));
+    this.getStationId(this.infoContent.routePlannerOrigin())
+  );
 
   this.infoContent.routePlannerDestinationId = ko.pureComputed(() =>
-    this.getStationId(this.infoContent.routePlannerDestination()));
+    this.getStationId(this.infoContent.routePlannerDestination())
+  );
 
   // Input validation for route form
-  this.infoContent.routePlannerOriginValid = ko.pureComputed(() => this.infoContent.routePlannerOriginId() !== null);
+  this.infoContent.routePlannerOriginValid = ko.pureComputed(
+    () => this.infoContent.routePlannerOriginId() !== null
+  );
 
-  this.infoContent.routePlannerDestinationValid = ko.pureComputed(() => this.infoContent.routePlannerDestinationId() !== null);
+  this.infoContent.routePlannerDestinationValid = ko.pureComputed(
+    () => this.infoContent.routePlannerDestinationId() !== null
+  );
 
-  this.infoContent.routePlannerAllValid = ko.pureComputed(() =>
-    this.infoContent.routePlannerOriginValid() && this.infoContent.routePlannerDestinationValid());
+  this.infoContent.routePlannerAllValid = ko.pureComputed(
+    () =>
+      this.infoContent.routePlannerOriginValid() &&
+      this.infoContent.routePlannerDestinationValid()
+  );
 
   // Add styles to route planner "go" button
   this.routePlannerGoButtonStyle = ko.pureComputed(() => {
-    if (this.infoContent.status.route() === StatusCodes.OK && this.infoContent.trips.length > 0) {
+    if (
+      this.infoContent.status.route() === StatusCodes.OK &&
+      this.infoContent.trips.length > 0
+    ) {
       return 'route-go-btn-success';
     } else if (this.infoContent.status.route() === StatusCodes.FETCHING) {
       return 'route-go-btn-fetching';
@@ -148,7 +160,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   };
 
   // Show station list when user begins typing
-  this.searchTerm.subscribe((newValue) => {
+  this.searchTerm.subscribe(newValue => {
     if (newValue.length > 0) {
       this.infoStyles('info-hidden');
       this.stationListStyles('station-list-visible');
@@ -165,14 +177,17 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
       } else if (key === 'status') {
         for ([subKey, subValue] of Object.entries(update[key])) {
           state[key][subKey](subValue);
-          Console(`[NeighborHoodViewModel] setting state.${key}.${subKey} to `, subValue);
+          Console(
+            `[NeighborHoodViewModel] setting state.${key}.${subKey} to `,
+            subValue
+          );
         }
       }
     }
   };
 
   // Update station information content
-  this.handleUpdate = (newContent) => {
+  this.handleUpdate = newContent => {
     this.processUpdate(this.infoContent, newContent);
   };
 
@@ -184,18 +199,22 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
     ko.utils
       .arrayFilter(
         this.stations(),
-        station => station.name.toLowerCase().indexOf(this.searchTerm().toLowerCase()) !== -1,
+        station =>
+          station.name
+            .toLowerCase()
+            .indexOf(this.searchTerm().toLowerCase()) !== -1
       )
-      .sort((a, b) => a.name.localeCompare(b.name)));
+      .sort((a, b) => a.name.localeCompare(b.name))
+  );
 
   // Handle updates of searchResults
-  this.searchResults.subscribe((newValue) => {
+  this.searchResults.subscribe(newValue => {
     // If the currently selected item is not in the new search results, deselect it.
     if (this.activeItem() && $.inArray(this.activeItem(), newValue) === -1) {
       this.clearActive();
     }
     // Display only markers that belong to my new search results
-    this.stations().forEach((station) => {
+    this.stations().forEach(station => {
       if ($.inArray(station, newValue) === -1) {
         station.hideFromMap();
       } else {
@@ -205,7 +224,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   });
 
   // Select a new station and display its info to the user
-  this.makeActive = (station) => {
+  this.makeActive = station => {
     this.purgeData();
     // Return to the first tab
     this.infoTab('departures');
@@ -226,17 +245,17 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
 
   // Remove marker highlight from currently selected item on change
   this.activeItem.subscribe(
-    (oldStation) => {
+    oldStation => {
       if (oldStation) {
         oldStation.toggleHighlight(false);
       }
     },
     null,
-    'beforeChange', // This way we get the value before the change
+    'beforeChange' // This way we get the value before the change
   );
 
   // Highlight the newly selected station on the map
-  this.activeItem.subscribe((newStation) => {
+  this.activeItem.subscribe(newStation => {
     if (newStation) {
       newStation.toggleHighlight(true);
     }
@@ -245,14 +264,17 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   // Switch origin and destination input values in route planner form
   this.switchInputs = () => {
     const tmp = this.infoContent.routePlannerOrigin();
-    this.infoContent.routePlannerOrigin(this.infoContent.routePlannerDestination());
+    this.infoContent.routePlannerOrigin(
+      this.infoContent.routePlannerDestination()
+    );
     this.infoContent.routePlannerDestination(tmp);
   };
 
   // Kick off fetching of route planner results
   this.fetchRoute = () => {
     const time = this.infoContent.routePlannerTime();
-    const timeMode = this.infoContent.routePlannerTimeMode() === 'departure' ? 0 : 1;
+    const timeMode =
+      this.infoContent.routePlannerTimeMode() === 'departure' ? 0 : 1;
     this.stationInfo.fetchRoute({
       originId: this.infoContent.routePlannerOriginId(),
       destId: this.infoContent.routePlannerDestinationId(),
@@ -267,17 +289,21 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   };
 
   // Return a nicely formatted title for a single route result
-  this.constructTripTitle = (trip) => {
-    const arrow = '<span class="glyphicon glyphicon-chevron-right trip-chevron"></span>';
+  this.constructTripTitle = trip => {
+    const arrow =
+      '<span class="glyphicon glyphicon-chevron-right trip-chevron"></span>';
     return `${trip.legs[0].departure} - ${trip.legs.slice(-1)[0].arrival}
       <span class="pull-right">${trip.duration}</span><br>
       ${trip.legs
-    .map((leg, index) => `${index > 0 ? arrow : ''}${this.createBadge(leg.type)}`)
-    .join('')}`;
+        .map(
+          (leg, index) =>
+            `${index > 0 ? arrow : ''}${this.createBadge(leg.type)}`
+        )
+        .join('')}`;
   };
 
   // Return a div with the right classes to get differently styled badges
-  this.createBadge = (product) => {
+  this.createBadge = product => {
     let productClass = '';
     if (product.search(/^\s*U/) === 0) {
       productClass = 'trip-product-badge-ubahn';
@@ -294,7 +320,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   };
 
   // Scroll the station list to show the given item on top
-  this.scrollToElement = (element) => {
+  this.scrollToElement = element => {
     const listNumber = this.searchResults().indexOf(element);
     const scrollTop = $('.station-list').scrollTop();
     const listTop = $('.station-list').offset().top;
@@ -306,22 +332,24 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
         // Scroll position needs to be offset by (y-position of <li>) - (y-position of <ul>)
         scrollTop: scrollTop + elementTop - listTop,
       },
-      400,
+      400
     );
   };
 
   // Convert rating to glyphicons
   // For example 4 -> ★★★★☆
-  this.starRating = (rating) => {
+  this.starRating = rating => {
     const star = '<span class="glyphicon glyphicon-star"></span>';
     const starEmpty = '<span class="glyphicon glyphicon-star-empty"></span>';
     return `${star.repeat(rating)}${starEmpty.repeat(5 - rating)}`;
   };
 
   // Returns the stations id (necessary for traffic services)
-  this.getStationId = (stationName) => {
+  this.getStationId = stationName => {
     // TODO: If multiple matches for /stationName/i are found, ask user to choose
-    const result = this.stations().find(station => stationName.toLowerCase() === station.name.toLowerCase());
+    const result = this.stations().find(
+      station => stationName.toLowerCase() === station.name.toLowerCase()
+    );
     return result ? result.hafasId : null;
   };
 
@@ -329,7 +357,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
   mapLoading
     .then(({ map, stations }) => {
       // Select station when marker is clicked
-      stations.forEach((station) => {
+      stations.forEach(station => {
         station.registerClickHandler(() => this.makeActive(station));
       });
       this.stations(stations);
@@ -338,7 +366,7 @@ const NeighborhoodMapViewModel = function NeighborhoodMapViewModel(mapLoading) {
       this.windowWidth($(window).width());
       this.appStatus(StatusCodes.OK);
     })
-    .catch((errorMessage) => {
+    .catch(errorMessage => {
       // Some error occurred when loading our Google Maps
       this.appStatus(StatusCodes.ERROR);
       this.appStatusMessage(errorMessage);

@@ -54,7 +54,7 @@ class StationInfo {
     this.placesRequest = new GooglePlacesRequest(
       request,
       this.handlePlacesSuccess.bind(this),
-      this.handlePlacesError.bind(this),
+      this.handlePlacesError.bind(this)
     );
     this.placesRequest.start();
   }
@@ -79,7 +79,7 @@ class StationInfo {
     TrafficService.getDepartureBoard(
       station.hafasId,
       this.handleDepartureSuccess.bind(this),
-      this.handleDepartureError.bind(this),
+      this.handleDepartureError.bind(this)
     );
   }
 
@@ -103,7 +103,7 @@ class StationInfo {
     TrafficService.getRoute(
       request,
       this.handleRouteSuccess.bind(this),
-      this.handleRouteError.bind(this),
+      this.handleRouteError.bind(this)
     );
   }
 

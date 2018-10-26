@@ -22,7 +22,7 @@ const ajax = (url, callback, errorHandler = null) => {
     jsonp: 'jsonpCallback',
   })
     .done(callback)
-    .fail((err) => {
+    .fail(err => {
       const errorMessage = `Error on AJAX request: ${err.status}`;
       Console(`[TrafficService] ${errorMessage}`);
       if (errorHandler) {
@@ -34,9 +34,10 @@ const ajax = (url, callback, errorHandler = null) => {
 // Helper functions to format data
 const prettyPrintTime = time => time.replace(/(\d\d:\d\d):\d\d/, '$1');
 
-const abbreviateStationName = name => name.replace(/^\s*Frankfurt \(Main\)\s*/, '');
+const abbreviateStationName = name =>
+  name.replace(/^\s*Frankfurt \(Main\)\s*/, '');
 
-const prettyPrintDuration = (duration) => {
+const prettyPrintDuration = duration => {
   // TODO: Pretty sure this can be done in a single regex
   let str = '';
   const hours = duration.match(/(\d+)H/);
@@ -51,36 +52,44 @@ const prettyPrintDuration = (duration) => {
 };
 
 // Wrapper for callback, making the results more usable
-const handleDepartureResponse = (callback, errorHandler) => (result) => {
+const handleDepartureResponse = (callback, errorHandler) => result => {
   if (!result.Departure) {
-    const errorMessage = `Could not fetch departure data: ${JSON.stringify(result)}`;
+    const errorMessage = `Could not fetch departure data: ${JSON.stringify(
+      result
+    )}`;
     Console(`[TrafficService] ${errorMessage}`);
     return errorHandler(errorMessage);
   }
-  return callback(result.Departure.map(connection => ({
-    line: connection.name,
-    direction: abbreviateStationName(connection.direction),
-    departure: prettyPrintTime(connection.time),
-  })));
+  return callback(
+    result.Departure.map(connection => ({
+      line: connection.name,
+      direction: abbreviateStationName(connection.direction),
+      departure: prettyPrintTime(connection.time),
+    }))
+  );
 };
 
-const handleRouteResponse = (callback, errorHandler) => (result) => {
+const handleRouteResponse = (callback, errorHandler) => result => {
   if (!result.Trip) {
-    const errorMessage = `Could not fetch route data: ${JSON.stringify(result)}`;
+    const errorMessage = `Could not fetch route data: ${JSON.stringify(
+      result
+    )}`;
     Console(`[TrafficService] ${errorMessage}`);
     return errorHandler(errorMessage);
   }
-  return callback(result.Trip.map(trip => ({
-    duration: prettyPrintDuration(trip.duration),
-    legs: trip.LegList.Leg.map(leg => ({
-      origin: abbreviateStationName(leg.Origin.name),
-      destination: abbreviateStationName(leg.Destination.name),
-      direction: leg.direction ? abbreviateStationName(leg.direction) : '',
-      departure: prettyPrintTime(leg.Origin.time),
-      arrival: prettyPrintTime(leg.Destination.time),
-      type: (leg.name || leg.type).trim(),
-    })),
-  })));
+  return callback(
+    result.Trip.map(trip => ({
+      duration: prettyPrintDuration(trip.duration),
+      legs: trip.LegList.Leg.map(leg => ({
+        origin: abbreviateStationName(leg.Origin.name),
+        destination: abbreviateStationName(leg.Destination.name),
+        direction: leg.direction ? abbreviateStationName(leg.direction) : '',
+        departure: prettyPrintTime(leg.Origin.time),
+        arrival: prettyPrintTime(leg.Destination.time),
+        type: (leg.name || leg.type).trim(),
+      })),
+    }))
+  );
 };
 
 const TrafficService = {

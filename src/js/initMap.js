@@ -32,7 +32,7 @@ const initMap = () =>
     };
     // This function is called by the 'onerror' handler of the script tag
     // TODO: Does onerror pass a value?
-    window.handleMapError = (err) => {
+    window.handleMapError = err => {
       reject(err);
     };
   });

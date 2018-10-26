@@ -1,33 +1,55 @@
-# FND: Neighborhood Map
+# Frankfurt Subway Map
 
-This is the Neighborhood Map project of the [Udacity Frontend Nanodegree](
-https://www.udacity.com/course/front-end-web-developer-nanodegree--nd001).
-It is a local traffic map showing bus, tram and subway stations in Frankfurt, Germany.
+<img width="700" src="https://user-images.githubusercontent.com/27681148/47577336-ece26c00-d946-11e8-8aa3-61d3d4acb5ea.png" alt="Main Map Screen">
 
-See the [project rubric](https://review.udacity.com/#!/rubrics/17/view) for detailed project requirements.
+This project displays bus, tram and subway stations in Frankfurt, Germany. It allows the user to see detail information about the stations, view next departures and plan routes.
+This was my first application using a frontend framework and (looking back at it) let me say the code is horrible. It is the first time I experienced the pain of not knowing how to structure a slightly more complex application and, let me tell you, I learnt _a lot_.
 
-## Features
+Still being amazed, this bunch of Spaghetti actually works. 🍝
+
+# Features
+
 - Filter station by name
-- View place information
+- View place information (Google Places API)
 - Show next departures
-- Plan a route
+- Plan a route (RMV local traffic API)
+- Fully responsive design
 
-## Getting Started
-1. Install [npm](https://www.npmjs.com/get-npm)
-2. Install [Git](https://git-scm.com/downloads)
-3. Open a terminal and change to the location you want to save the application folder to
-4. Enter `git clone https://github.com/carlhueffmeier/fend-neighborhoodmap.git` to download the project directory
-5. Enter `cd fend-neighborhoodmap` to open the project directory
-6. Enter `npm install` to install all requirements
-8. Enter `npm start` to launch the server
-9. Browse to `localhost:8080` in your web browser
-10. Enjoy
+# Showcase
 
-## Issues
-- Bundle size is really big
-- No autocomplete for route planner
+<center>
+  <table>
+    <tr>
+      <td><img width="100" alt="Group View (light theme)" src="https://user-images.githubusercontent.com/27681148/47578195-0c7a9400-d949-11e8-879d-add8d1d0e8c4.png"></td>
+      <td><img width="300" alt="Group View (dark theme)" src="https://user-images.githubusercontent.com/27681148/47578235-2fa54380-d949-11e8-9a81-ce239ad587d5.png"></td>
+    </tr>
+  </table>
+</center>
 
-## Attribution
+# Get started
+
+1. Clone the repository
+
+```sh
+> git clone https://github.com/carlhueffmeier/raven-notes.git
+```
+
+2. Install dependencies
+
+```sh
+> npm install
+```
+
+3. Run the project
+
+```sh
+> npm start
+```
+
+4. Open up [http://localhost:8080](http://localhost:8080)
+
+# Attribution
+
 Map and places info provided by [Google](https://developers.google.com/maps/documentation/javascript/?hl=en).
 
-Station information provided by Frankfurt local traffic provider [RMV](https://opendata.rmv.de/site/start.html).
+Station information kindly provided by Frankfurt local traffic provider [RMV](https://opendata.rmv.de/site/start.html).

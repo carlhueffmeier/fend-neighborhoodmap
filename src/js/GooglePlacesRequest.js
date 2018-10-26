@@ -15,7 +15,9 @@ class GooglePlacesRequest {
   constructor(request, onSuccess, onError) {
     // Google needs a node to show attributions, no need to make map object available here
     if (!PlacesService) {
-      PlacesService = new google.maps.places.PlacesService(document.getElementById('attribution'));
+      PlacesService = new google.maps.places.PlacesService(
+        document.getElementById('attribution')
+      );
     }
     const defaults = {
       radius: 100,
@@ -75,11 +77,17 @@ class GooglePlacesRequest {
   choosePlace(places) {
     const stationName = this.request.query;
     // First get rid of all places which names don't match
-    let results = places.filter(place =>
-      place.name.match(`/^${stationName}/`) ||
-        stationName.indexOf(place.name.replace(/\w+\s?\(\w+\)\s?(\w+)/, '$1')) >= 0);
+    let results = places.filter(
+      place =>
+        place.name.match(`/^${stationName}/`) ||
+        stationName.indexOf(
+          place.name.replace(/\w+\s?\(\w+\)\s?(\w+)/, '$1')
+        ) >= 0
+    );
     // Next expose of the results without any relevant info
-    results = results.filter(place => place.rating || place.review || place.photos);
+    results = results.filter(
+      place => place.rating || place.review || place.photos
+    );
     return results.length > 0 ? results[0] : null;
   }
 
@@ -110,7 +118,7 @@ class GooglePlacesRequest {
     }
     if (place.reviews) {
       results.reviews = [];
-      place.reviews.forEach((review) => {
+      place.reviews.forEach(review => {
         results.reviews.push({
           author: review.author_name,
           body: review.text,

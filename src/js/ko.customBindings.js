@@ -13,7 +13,7 @@ ko.bindingHandlers.timeValue = {
     // Initialize timepicker
     const tpicker = $(element).timepicker(options);
     // Update observable when element changes
-    tpicker.on('changeTime.timepicker', (e) => {
+    tpicker.on('changeTime.timepicker', e => {
       const value = valueAccessor();
       if (!value) {
         throw new Error('timeValue binding observable not found');
@@ -46,7 +46,7 @@ ko.bindingHandlers.activeTab = {
   // I am ignoring the initial value of the observable, because I don't need that functionality
   init(element, valueAccessor) {
     const tabs = $(element).children('li');
-    tabs.on('show.bs.tab', (e) => {
+    tabs.on('show.bs.tab', e => {
       const value = valueAccessor();
       // Retrieve the target tab name
       const newTab = $(e.target)

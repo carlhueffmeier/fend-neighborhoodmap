@@ -17,7 +17,7 @@ const stations = StationData.map(stationData => new Station(stationData));
 const promise = new Promise((resolve, reject) => {
   // Creates callbacks for google maps
   initMap()
-    .then((map) => {
+    .then(map => {
       stations.forEach(station => station.setMap(map));
       resolve({ map, stations });
     })
