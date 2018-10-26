@@ -1,6 +1,8 @@
 # Frankfurt Subway Map
 
-<img width="700" src="https://user-images.githubusercontent.com/27681148/47577336-ece26c00-d946-11e8-8aa3-61d3d4acb5ea.png" alt="Main Map Screen">
+<p align="center">
+<img width="600" src="https://user-images.githubusercontent.com/27681148/47577336-ece26c00-d946-11e8-8aa3-61d3d4acb5ea.png" alt="Main map screen">
+</p>
 
 This project displays bus, tram and subway stations in Frankfurt, Germany. It allows the user to see detail information about the stations, view next departures and plan routes.
 This was my first application using a frontend framework and (looking back at it) let me say the code is horrible. It is the first time I experienced the pain of not knowing how to structure a slightly more complex application and, let me tell you, I learnt _a lot_.
